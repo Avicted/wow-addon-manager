@@ -22,7 +22,7 @@ AS_ME := --user $(shell id -u):$(shell id -g)
 TTY   := $(shell [ -t 0 ] && echo -t)
 
 .DEFAULT_GOAL := help
-.PHONY: help status update install remove search track wam image dist gui gui-test smoke test cover pre-commit hooks clean
+.PHONY: help status update install remove search track wam image dist gui gui-test release-check release-assets release-notes smoke test cover pre-commit hooks clean
 
 help: ## Help: list every command
 	@awk 'match($$0, /^[a-zA-Z0-9_-]+:.*## /) { \
@@ -90,6 +90,22 @@ dist: ## Build: export the static binaries to build/dist (wam, wam.exe for Windo
 gui: ## Build: test, then export the desktop app to build/dist (wam-gui, wam-gui.exe)
 	docker build -f Dockerfile.gui --target gui --output type=local,dest=$(BUILD)/dist .
 	@ls -l $(BUILD)/dist/wam-gui $(BUILD)/dist/wam-gui.exe
+
+release-check: ## Build: check VERSION has a CHANGELOG section (and matches TAG=vX.Y.Z if given)
+	@$(if $(TAG),[ "$(TAG)" = "v$(VERSION)" ] || { echo "release-check: tag $(TAG) does not match VERSION $(VERSION)"; exit 1; };) \
+		[ -n "$$($(MAKE) -s release-notes)" ] || { echo "release-check: CHANGELOG.md has no entry for $(VERSION)"; exit 1; }
+	@echo "release-check: OK ($(VERSION))"
+
+release-notes:
+	@awk -v v="$(VERSION)" '/^## /{ on = index($$0, "## [" v "]") == 1; next } on' CHANGELOG.md | sed '/./,$$!d'
+
+release-assets: dist gui release-check ## Build: versioned binaries and SHA256SUMS in build/release
+	rm -rf $(BUILD)/release && mkdir -p $(BUILD)/release
+	cp $(BUILD)/dist/wam $(BUILD)/release/wam-$(VERSION)-linux-amd64
+	cp $(BUILD)/dist/wam.exe $(BUILD)/release/wam-$(VERSION)-windows-amd64.exe
+	cp $(BUILD)/dist/wam-gui $(BUILD)/release/wam-gui-$(VERSION)-linux-amd64
+	cp $(BUILD)/dist/wam-gui.exe $(BUILD)/release/wam-gui-$(VERSION)-windows-amd64.exe
+	cd $(BUILD)/release && sha256sum * > SHA256SUMS && cat SHA256SUMS
 
 clean: ## Build: delete build/ (binaries, image stamps, tool caches)
 	rm -rf $(BUILD)

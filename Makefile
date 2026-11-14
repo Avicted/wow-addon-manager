@@ -25,16 +25,19 @@ TTY   := $(shell [ -t 0 ] && echo -t)
 .PHONY: help status update install remove search track wam image dist gui gui-test release-check new-version undo-version release-assets release-notes smoke test cover pre-commit hooks clean
 
 help: ## Help: list every command
-	@awk 'match($$0, /^[a-zA-Z0-9_-]+:.*## /) { \
+	@color=; [ -t 1 ] && [ -z "$${NO_COLOR:-}" ] && color=1; \
+	awk 'match($$0, /^[a-zA-Z0-9_-]+:.*## /) { \
 		target = substr($$0, 1, index($$0, ":") - 1); \
 		rest = substr($$0, RLENGTH + 1); \
 		sep = index(rest, ": "); \
 		print substr(rest, 1, sep - 1) "\t" target "\t" substr(rest, sep + 2) }' $(MAKEFILE_LIST) \
 	| LC_ALL=C sort -t '	' -k1,1 -k2,2 \
-	| awk -F '\t' '{ cat[NR] = $$1; tgt[NR] = $$2; desc[NR] = $$3; if (!seen[$$1]++) cats++ } \
+	| awk -F '\t' -v color="$$color" \
+		'BEGIN { if (color) { head = "\033[1;35m"; name = "\033[36m"; off = "\033[0m" } } \
+		{ cat[NR] = $$1; tgt[NR] = $$2; desc[NR] = $$3; if (!seen[$$1]++) cats++ } \
 		END { for (i = 1; i <= NR; i++) { \
-			if (cats > 1 && cat[i] != prev) { printf "%s%s\n", (i > 1 ? "\n" : ""), cat[i]; prev = cat[i] } \
-			printf "  %-12s %s\n", tgt[i], desc[i] } }'
+			if (cats > 1 && cat[i] != prev) { printf "%s%s%s%s\n", (i > 1 ? "\n" : ""), head, cat[i], off; prev = cat[i] } \
+			printf "  %s%-14s%s %s\n", name, tgt[i], off, desc[i] } }'
 
 # ---------------------------------------------------------------------------
 # Running wam. The whole Interface directory is mounted, at the same path as on

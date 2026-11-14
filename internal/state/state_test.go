@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/Avicted/wow-addon-manager/internal/source"
@@ -175,4 +176,21 @@ func TestLoadSaveRoundTrip(t *testing.T) {
 	if _, err := Load(path, "/elsewhere"); err == nil {
 		t.Fatal("state for another AddOns directory: want error")
 	}
+}
+
+func TestLockIsExclusive(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "data")
+	unlock, err := Lock(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Lock(dir); err == nil || !strings.Contains(err.Error(), "another wam is running") {
+		t.Fatalf("second lock: %v", err)
+	}
+	unlock()
+	again, err := Lock(dir)
+	if err != nil {
+		t.Fatalf("lock after unlock: %v", err)
+	}
+	again()
 }

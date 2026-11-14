@@ -343,3 +343,17 @@ func TestUpdateStopsWhenInterrupted(t *testing.T) {
 		t.Fatalf("output:\n%s", out)
 	}
 }
+
+func TestRunRefusesWhileAnotherWamRuns(t *testing.T) {
+	dir := t.TempDir()
+	data := filepath.Join(dir, "data")
+	t.Setenv("WAM_DATA_DIR", data)
+	unlock, err := state.Lock(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+	if code, _, errOut := run(t, "-addons-dir", dir, "status"); code != 1 || !strings.Contains(errOut, "another wam is running") {
+		t.Fatalf("%d %q", code, errOut)
+	}
+}

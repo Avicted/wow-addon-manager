@@ -13,6 +13,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"syscall"
 
 	"github.com/Avicted/wow-addon-manager/internal/source"
 	"github.com/Avicted/wow-addon-manager/internal/toc"
@@ -63,6 +64,28 @@ func Load(path, addonsDir string) (*State, error) {
 		return nil, fmt.Errorf("%s tracks %s, not %s; set WAM_DATA_DIR to use a separate state for that directory", path, st.AddonsDir, addonsDir)
 	}
 	return st, nil
+}
+
+// Lock takes the exclusive lock on the data directory, so two wam processes can't change
+// state.json and AddOns at the same time. It fails at once if another process holds it.
+// The returned function releases the lock; the OS also does when the process exits.
+func Lock(dataDir string) (unlock func(), err error) {
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		return nil, err
+	}
+	path := filepath.Join(dataDir, "state.lock")
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		_ = f.Close()
+		if errors.Is(err, syscall.EWOULDBLOCK) {
+			return nil, fmt.Errorf("another wam is running (it holds %s)", path)
+		}
+		return nil, err
+	}
+	return func() { _ = f.Close() }, nil // closing the file drops the lock
 }
 
 // Save writes the state atomically.

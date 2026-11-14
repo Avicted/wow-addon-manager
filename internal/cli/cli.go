@@ -139,6 +139,12 @@ func Run(args []string, out, errOut io.Writer, version string) int {
 	if cmd == "update" || cmd == "install" {
 		install.CleanStaging(dir, time.Hour)
 	}
+	unlock, err := state.Lock(dataDir)
+	if err != nil {
+		e.logf("wam: %v", err)
+		return 1
+	}
+	defer unlock()
 	st, err := state.Load(filepath.Join(dataDir, "state.json"), dir)
 	if err != nil {
 		e.logf("wam: %v", err)

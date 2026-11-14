@@ -13,6 +13,14 @@ make hooks        install the pre-commit git hook
 
 With Go installed, `go test ./...` and `go run ./cmd/wam status` work directly.
 
+The parsers of downloaded files have fuzz tests; their seeds run with `go test`. To
+fuzz for a while:
+
+```
+go test -run '^$' -fuzz FuzzExtractZip -fuzztime 60s ./internal/install
+go test -run '^$' -fuzz FuzzParse -fuzztime 60s ./internal/toc
+```
+
 Tests are offline: CurseForge and GitHub are `httptest` servers, the AddOns
 directory is a temporary one, and `install` swaps and rolls back on real files.
 Point a run at a copy of your AddOns directory before trying changes on the

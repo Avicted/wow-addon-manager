@@ -256,3 +256,39 @@ func TestCleanStagingRemovesOnlyOldStagingDirs(t *testing.T) {
 		t.Error("removed something it shouldn't have")
 	}
 }
+
+// FuzzExtractZip checks that whatever an archive calls its files, nothing is written outside
+// the destination and nothing panics.
+func FuzzExtractZip(f *testing.F) {
+	for _, name := range []string{
+		"A/A.toc", `AtlasLoot\AtlasLoot.toc`, "Pack/A/A.toc", "A/../../evil.lua", "/etc/evil", `C:\evil`,
+		`..\evil`, "A/./B/../C.toc", "A//B.toc", "__MACOSX/A/._A.toc", "A/", "", ".", "..", "A/\x00B",
+	} {
+		f.Add(name, "body")
+	}
+	f.Fuzz(func(t *testing.T, name, body string) {
+		if strings.HasSuffix(name, "/") {
+			body = "" // a directory entry has no content
+		}
+		root := t.TempDir()
+		dest := filepath.Join(root, "dest")
+		if err := os.Mkdir(dest, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		zp := filepath.Join(root, "a.zip")
+		if err := os.WriteFile(zp, makeZip(t, map[string]string{name: body, "Keep/Keep.toc": "x"}), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		_, _ = ExtractZip(zp, dest)
+
+		entries, err := os.ReadDir(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range entries {
+			if e.Name() != "dest" && e.Name() != "a.zip" {
+				t.Fatalf("%q wrote %s outside the destination", name, e.Name())
+			}
+		}
+	})
+}

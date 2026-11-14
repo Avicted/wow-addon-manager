@@ -67,3 +67,25 @@ func TestScanSkipsHiddenAndFiles(t *testing.T) {
 		t.Fatalf("Scan = %+v, %v", got, err)
 	}
 }
+
+func FuzzParse(f *testing.F) {
+	for _, s := range []string{
+		"## Title: X\n## Version: 1\n", "\ufeff## Title: X\r\n", "##:\n## : x\n###: y\n", "no header\n", "",
+		"## Title: " + strings.Repeat("a", readLimit*2),
+	} {
+		f.Add(s)
+	}
+	f.Fuzz(func(t *testing.T, s string) {
+		fields := Parse(strings.NewReader(s))
+		total := 0
+		for k, v := range fields {
+			if k != strings.ToLower(k) || strings.TrimSpace(k) != k || k == "" {
+				t.Fatalf("bad key %q", k)
+			}
+			total += len(k) + len(v)
+		}
+		if total > readLimit {
+			t.Fatalf("parsed %d bytes of fields from a limit of %d", total, readLimit)
+		}
+	})
+}

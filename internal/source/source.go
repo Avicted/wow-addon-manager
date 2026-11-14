@@ -28,7 +28,6 @@ const (
 	foreverTypeID     = 88568
 	foreverVersionPfx = "1.60."
 	curseRelease      = 1
-	maxDownload       = 1 << 30
 )
 
 // Endpoints are variables so tests can point them at httptest servers.
@@ -37,6 +36,9 @@ var (
 	cfwidgetAPI = "https://api.cfwidget.com"
 	githubAPI   = "https://api.github.com"
 	wagoAPI     = "https://addons.wago.io"
+
+	// maxDownload is the largest release file wam accepts; tests lower it.
+	maxDownload int64 = 1 << 30
 
 	apiClient      = &http.Client{Timeout: 60 * time.Second}
 	downloadClient = &http.Client{Timeout: 15 * time.Minute}

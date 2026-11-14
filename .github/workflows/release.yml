@@ -23,12 +23,13 @@ jobs:
       - run: make release-check TAG="$GITHUB_REF_NAME"
       - run: make test
       - run: make release-assets
+      - run: make -s release-notes > build/release-notes.md
+      # The action runs on the runner's own Node, so the self-hosted runner needs no gh CLI.
       - name: Publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          make -s release-notes > build/release-notes.md
-          gh release create "$GITHUB_REF_NAME" build/release/* \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" \
-            --notes-file build/release-notes.md
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        with:
+          name: ${{ github.ref_name }}
+          body_path: build/release-notes.md
+          files: build/release/*
+          fail_on_unmatched_files: true
+          make_latest: true

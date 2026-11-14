@@ -76,11 +76,14 @@ fn results(app: &mut App, ui: &mut Ui, height: f32) {
                 "Search CurseForge by name. You can also paste a link below if you already know where the addon lives."),
             FindPhase::Searching(q) => {
                 let q = q.clone();
-                ui.centered_and_justified(|ui| {
-                    ui.horizontal_centered(|ui| {
-                        ui.add(egui::Spinner::new().size(20.0).color(theme::ACCENT_TEXT));
-                        ui.label(text(format!("Searching CurseForge for \u{201c}{q}\u{201d}\u{2026}"), 13.0, Weight::Regular, theme::TEXT_SECONDARY));
-                    });
+                let msg = format!("Searching CurseForge for \u{201c}{q}\u{201d}\u{2026}");
+                let width = ui.painter().layout_no_wrap(msg.clone(), theme::font(13.0, Weight::Regular), theme::TEXT_SECONDARY).size().x;
+                // spinner + gap + text, centred in the results area
+                let size = Vec2::new(20.0 + 6.0 + width, 24.0);
+                let rect = egui::Rect::from_center_size(ui.max_rect().center(), size);
+                in_rect(ui, rect, Align::Min, |ui| {
+                    ui.add(egui::Spinner::new().size(20.0).color(theme::ACCENT_TEXT));
+                    ui.label(text(msg, 13.0, Weight::Regular, theme::TEXT_SECONDARY));
                 });
             }
             FindPhase::Nothing(q) => {

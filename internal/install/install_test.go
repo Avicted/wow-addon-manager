@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -326,5 +327,29 @@ func TestInstallChecksTheReleaseDigest(t *testing.T) {
 				t.Fatalf("Foo has version %q, want %q", v, wantVersion)
 			}
 		})
+	}
+}
+
+func TestMoveDirCopiesAcrossFilesystems(t *testing.T) {
+	old := rename
+	rename = func(string, string) error { return &os.LinkError{Op: "rename", Err: syscall.EXDEV} }
+	t.Cleanup(func() { rename = old })
+
+	root := t.TempDir()
+	src, dst := filepath.Join(root, "src"), filepath.Join(root, "dst")
+	if err := os.MkdirAll(filepath.Join(src, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "sub", "a.lua"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := moveDir(src, dst); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dst, "sub", "a.lua")); err != nil || string(b) != "x" {
+		t.Errorf("copy missing: %q, %v", b, err)
+	}
+	if exists(src) {
+		t.Error("source should be removed after the copy")
 	}
 }

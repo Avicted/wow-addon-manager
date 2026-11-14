@@ -120,9 +120,12 @@ func extractFile(f *zip.File, target string) error {
 // move is moveDir; tests replace it to simulate failures.
 var move = moveDir
 
+// rename is os.Rename; tests replace it to simulate a cross-device move.
+var rename = os.Rename
+
 // moveDir renames, falling back to copy+delete across filesystems.
 func moveDir(src, dst string) error {
-	err := os.Rename(src, dst)
+	err := rename(src, dst)
 	if !errors.Is(err, syscall.EXDEV) {
 		return err
 	}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>wam — Find addons</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 960px; height: 640px; display: flex; flex-direction: column; background: #16191C; color: #E7E9EC; font-family: Inter, sans-serif; font-size: 13px; line-height: 1.4; overflow: hidden">
+<header style="height: 44px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 12px 0 16px; background: #1A1D21; border-bottom: 1px solid #2E3339"><div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: #E7E9EC"><span style="display: flex; color: #7FB0FA"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><rect x="1.5" y="1.5" width="13" height="13" rx="3"/><path d="M4.5 5.5l1.5 5 2-3.5 2 3.5 1.5-5"/></svg></span>wam</div><nav aria-label="Sections" style="display: flex; align-items: stretch; height: 44px; opacity: 1"><a href="Addons.dc.html" style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 12px; text-decoration: none; font-size: 13px; font-weight: 500; color: #9BA3AD; border-top: 2px solid transparent; border-bottom: 2px solid transparent">Addons<span style="min-width: 20px; height: 18px; padding: 0 6px; box-sizing: border-box; border-radius: 9px; background: #2A2F35; color: #C9CED4; font-size: 11px; line-height: 18px; text-align: center">14</span></a><a href="Find.dc.html" aria-current="page" style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 12px; text-decoration: none; font-size: 13px; font-weight: 600; color: #E7E9EC; border-top: 2px solid transparent; border-bottom: 2px solid #4C8DF0">Find addons</a><a href="Settings.dc.html" style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 12px; text-decoration: none; font-size: 13px; font-weight: 500; color: #9BA3AD; border-top: 2px solid transparent; border-bottom: 2px solid transparent">Settings</a></nav></header>
+<main style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px">
+<form role="search" style="flex: none; display: flex; gap: 8px; align-items: center; max-width: 640px" onSubmit="{{noSubmit}}">
+<label for="q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search CurseForge for addons</label>
+<div style="flex: 1; min-width: 0; position: relative; display: flex; align-items: center">
+<span style="position: absolute; left: 10px; display: flex; color: #9BA3AD"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg></span>
+<input id="q" type="search" value="{{query}}" readOnly="{{ true }}" placeholder="Search by addon name, for example Questie or bags" style="height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 4px; border: 1px solid #3A4048; background: #121417; color: #E7E9EC; font-family: Inter, sans-serif; font-size: 13px; min-width: 0; width: 100%; padding-left: 32px">
+</div>
+<button type="submit" disabled="{{searching}}" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid #2F6FD0; background: #2F6FD0; color: #FFFFFF; opacity: {{searchOp}}">Search</button>
+</form>
+
+<section aria-label="Search results" style="flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid #2E3339; border-radius: 6px; overflow: hidden">
+<sc-if value="{{isResults}}" hint-placeholder-val="{{ true }}">
+<div style="flex: none; display: flex; align-items: center; height: 36px; padding: 0 12px; background: #1A1D21; border-bottom: 1px solid #2E3339; color: #9BA3AD">8 results for <span style="color: #E7E9EC; font-weight: 500; margin-left: 4px">“map”</span></div>
+<div role="row" style="flex: none; display: grid; grid-template-columns: minmax(0, 1fr) 120px 140px; height: 30px; align-items: center; background: #1E2226; border-bottom: 1px solid #2E3339; color: #9BA3AD; font-size: 12px; font-weight: 500">
+<div style="padding: 0 12px">Addon</div><div style="padding: 0 12px; text-align: right">Downloads</div><div style="padding: 0 12px"></div>
+</div>
+<div style="flex: 1; min-height: 0; overflow-y: auto">
+<sc-for list="{{results}}" as="r" hint-placeholder-count="8">
+<div role="row" style="display: grid; grid-template-columns: minmax(0, 1fr) 120px 140px; height: 36px; align-items: center; background: {{r.bg}}">
+<div style="padding: 0 12px; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">{{r.name}}</div>
+<div title="{{r.dlTip}}" style="padding: 0 12px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: {{r.dlColor}}">{{r.dl}}</div>
+<div style="padding: 0 12px; display: flex; justify-content: flex-end">
+<sc-if value="{{r.canInstall}}"><button type="button" style="height: 26px; box-sizing: border-box; padding: 0 10px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 12px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid #3A4048; background: #262A30; color: #E7E9EC"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M8 2.5v8"/><path d="M4.5 7.5 8 11l3.5-3.5"/><path d="M2.5 13.5h11"/></svg>Install</button></sc-if>
+<sc-if value="{{r.installed}}"><span style="display: inline-flex; align-items: center; gap: 6px; height: 26px; color: #5BC58A; font-size: 12px; font-weight: 500"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M3 8.5l3 3 7-7"/></svg>Installed</span></sc-if>
+<sc-if value="{{r.page}}"><a href="https://addons.wago.io/" title="Can't be installed automatically. Opens the addon's web page." style="display: inline-flex; align-items: center; gap: 6px; height: 26px; font-size: 12px; font-weight: 500; color: #7FB0FA; text-decoration: none">Open page<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 7.5 8.5"/><path d="M12 9.5v4H2.5V4h4"/></svg></a></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid #2E3339; background: #1A1D21; color: #9BA3AD; font-size: 12px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><circle cx="8" cy="8" r="6"/><path d="M8 7.5v3.5"/><path d="M8 5v.01"/></svg><span>Some addons have no version for this game. If so, wam tells you when you install.</span></div>
+</sc-if>
+
+<sc-if value="{{isIdle}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center">
+<span style="display: flex; color: #9BA3AD"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg></span>
+<p style="margin: 0; font-weight: 600">Find an addon</p>
+<p style="margin: 0; max-width: 360px; color: #9BA3AD">Search CurseForge by name. You can also paste a link below if you already know where the addon lives.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{searching}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; color: #C9CED4">
+<span style="display: flex; color: #7FB0FA"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M14 8a6 6 0 1 1-6-6"/></svg></span>Searching CurseForge for “map”…
+</div>
+</sc-if>
+
+<sc-if value="{{isNone}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center">
+<p style="margin: 0; font-weight: 600">Nothing found for “journalator classic forever”</p>
+<p style="margin: 0; max-width: 380px; color: #9BA3AD">Try a shorter name or check the spelling. If the addon is on GitHub, paste its address below.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{isDown}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center">
+<span style="display: flex; color: #F07A6E"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M8 2 1.5 13.5h13z"/><path d="M8 6.5v3"/><path d="M8 11.5v.01"/></svg></span>
+<p style="margin: 0; font-weight: 600">Search isn't available right now</p>
+<p style="margin: 0; max-width: 400px; color: #9BA3AD">The search service didn't answer. You can still install an addon from a link below, or try again in a few minutes.</p>
+<button type="button" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid #3A4048; background: #262A30; color: #E7E9EC"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>Try again</button>
+</div>
+</sc-if>
+</section>
+
+<section aria-labelledby="refTitle" style="flex: none; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: #1A1D21; border: 1px solid #2E3339; border-radius: 6px">
+<label id="refTitle" for="ref" style="font-weight: 600">Install from a link or name</label>
+<div style="display: flex; gap: 8px; max-width: 640px">
+<input id="ref" type="text" placeholder="Paste a CurseForge or GitHub link, or type a name like details" style="height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 4px; border: 1px solid #3A4048; background: #121417; color: #E7E9EC; font-family: Inter, sans-serif; font-size: 13px; min-width: 0; flex: 1">
+<button type="button" disabled="{{searching}}" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid #3A4048; background: #262A30; color: #E7E9EC; opacity: {{searchOp}}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M8 2.5v8"/><path d="M4.5 7.5 8 11l3.5-3.5"/><path d="M2.5 13.5h11"/></svg>Install</button>
+</div>
+<span style="font-size: 12px; color: #9BA3AD">Also works: <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED4">curse:61284</span> or <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED4">github:Questie/Questie</span></span>
+</section>
+</main>
+<footer style="flex: none; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; background: #1A1D21; border-top: 1px solid #2E3339; font-size: 12px">
+<span style="display: flex; color: #9BA3AD"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><circle cx="8" cy="8" r="6"/><path d="M8 7.5v3.5"/><path d="M8 5v.01"/></svg></span><span style="flex: 1; color: #C9CED4">Last check 14:02 · 2 updates available</span>
+<button type="button" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid transparent; background: transparent; color: #C9CED4; height: 24px; padding: 0 8px; font-size: 12px">Activity<span style="color: #9BA3AD">(3)</span><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M4 10l4-4 4 4"/></svg></button>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["results","idle","searching","none","unavailable"],"default":"results"},"$preview":{"width":960,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.view ?? 'results';
+    const list = [
+      ['Leatrix Maps', '2.1M', 'installed'], ['Mapster', '4.8M', 'install'], ['Magnify', '310K', 'install'],
+      ['HandyNotes', '9.6M', 'install'], ['GatherMate2', '14M', 'install'], ['Map Coordinates', '', 'page'],
+      ['WorldMapTrackingEnhanced', '', 'install'], ['AtlasLootClassic', '22M', 'installed']
+    ];
+    const results = list.map((r, i) => ({
+      name: r[0], dl: r[1] || '—', dlColor: r[1] ? '#C9CED4' : '#8A929C',
+      dlTip: r[1] ? r[1] + ' downloads' : 'Download count not available',
+      canInstall: r[2] === 'install', installed: r[2] === 'installed', page: r[2] === 'page',
+      bg: i % 2 ? '#1A1D21' : '#16191C'
+    }));
+    const searching = v === 'searching';
+    return {
+      results, searching, searchOp: searching ? 0.45 : 1,
+      query: v === 'idle' ? '' : v === 'none' ? 'journalator classic forever' : 'map',
+      isResults: v === 'results', isIdle: v === 'idle', isNone: v === 'none', isDown: v === 'unavailable',
+      noSubmit: (e) => e.preventDefault()
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -51,3 +51,5 @@ repos:
     rev: v2.15.1
     hooks:
       - id: hadolint
+        # Dockerfile.gui.dockerignore is an ignore list that matches the Dockerfile* glob.
+        exclude: \.dockerignore$

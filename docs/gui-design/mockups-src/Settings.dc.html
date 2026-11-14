@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>wam — Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 960px; height: 640px; display: flex; flex-direction: column; background: #16191C; color: #E7E9EC; font-family: Inter, sans-serif; font-size: 13px; line-height: 1.4; overflow: hidden">
+<header style="height: 44px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 12px 0 16px; background: #1A1D21; border-bottom: 1px solid #2E3339"><div style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: #E7E9EC"><span style="display: flex; color: #7FB0FA"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><rect x="1.5" y="1.5" width="13" height="13" rx="3"/><path d="M4.5 5.5l1.5 5 2-3.5 2 3.5 1.5-5"/></svg></span>wam</div><nav aria-label="Sections" style="display: flex; align-items: stretch; height: 44px; opacity: 1"><a href="Addons.dc.html" style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 12px; text-decoration: none; font-size: 13px; font-weight: 500; color: #9BA3AD; border-top: 2px solid transparent; border-bottom: 2px solid transparent">Addons<span style="min-width: 20px; height: 18px; padding: 0 6px; box-sizing: border-box; border-radius: 9px; background: #2A2F35; color: #C9CED4; font-size: 11px; line-height: 18px; text-align: center">14</span></a><a href="Find.dc.html" style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 12px; text-decoration: none; font-size: 13px; font-weight: 500; color: #9BA3AD; border-top: 2px solid transparent; border-bottom: 2px solid transparent">Find addons</a><a href="Settings.dc.html" aria-current="page" style="height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 0 12px; text-decoration: none; font-size: 13px; font-weight: 600; color: #E7E9EC; border-top: 2px solid transparent; border-bottom: 2px solid #4C8DF0">Settings</a></nav></header>
+<main style="flex: 1; min-height: 0; overflow-y: auto; padding: 8px 24px 16px">
+<div style="max-width: 680px; display: flex; flex-direction: column">
+
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 16px 0; border-top: 1px solid #2E3339; border-top: 0">
+<label for="dir" style="margin: 0; font-size: 14px; font-weight: 600">AddOns folder</label>
+<div style="display: flex; gap: 8px">
+<input id="dir" type="text" readOnly="{{ true }}" value="{{dir}}" style="height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 4px; border: 1px solid #3A4048; background: #121417; color: #E7E9EC; font-family: Inter, sans-serif; font-size: 13px; min-width: 0; flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 12px; border-color: {{dirBorder}}">
+<button type="button" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid #3A4048; background: #262A30; color: #E7E9EC"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M1.5 3.5h4.5l1.5 1.5h7v7.5h-13z"/></svg>Browse…</button>
+</div>
+<sc-if value="{{valid}}" hint-placeholder-val="{{ true }}"><span style="display: flex; align-items: center; gap: 6px; color: #5BC58A; font-size: 12px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M3 8.5l3 3 7-7"/></svg>Folder found. 14 addons, 2 not tracked.</span></sc-if>
+<sc-if value="{{invalid}}" hint-placeholder-val="{{ false }}"><span role="alert" style="display: flex; align-items: center; gap: 6px; color: #F07A6E; font-size: 12px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M8 2 1.5 13.5h13z"/><path d="M8 6.5v3"/><path d="M8 11.5v.01"/></svg>This folder doesn't exist. Choose the AddOns folder inside your game's Interface folder.</span></sc-if>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 16px 0; border-top: 1px solid #2E3339">
+<h2 style="margin: 0; font-size: 14px; font-weight: 600">Unidentified folders</h2>
+<p style="margin: 0; color: #9BA3AD; max-width: 560px">If you added addons by hand, wam can look at those folders again to work out where they came from.</p>
+<div><button type="button" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid #3A4048; background: #262A30; color: #E7E9EC"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>Rescan unidentified folders</button></div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 16px 0; border-top: 1px solid #2E3339">
+<label for="tok" style="margin: 0; font-size: 14px; font-weight: 600">GitHub token <span style="font-weight: 400; color: #9BA3AD">(optional)</span></label>
+<p style="margin: 0; color: #9BA3AD; max-width: 560px">GitHub allows 60 update checks an hour without a token. If many of your addons come from GitHub, a token raises that limit. It needs no permissions.</p>
+<sc-if value="{{rate}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #2A2416; border: 1px solid #4A3D1F; border-radius: 6px; color: #F0C979; max-width: 560px"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M8 2 1.5 13.5h13z"/><path d="M8 6.5v3"/><path d="M8 11.5v.01"/></svg><span>GitHub's limit was reached. GitHub addons are checked again at 15:00, or add a token now.</span></div>
+</sc-if>
+<div style="display: flex; gap: 8px; max-width: 560px">
+<input id="tok" type="password" value="{{tok}}" readOnly="{{ true }}" placeholder="Paste a token" style="height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 4px; border: 1px solid #3A4048; background: #121417; color: #E7E9EC; font-family: Inter, sans-serif; font-size: 13px; min-width: 0; flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 12px">
+<button type="button" aria-label="Show token" title="Show token" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid #3A4048; background: #262A30; color: #E7E9EC; width: 32px; padding: 0"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></button>
+</div>
+<a href="https://github.com/settings/tokens" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #7FB0FA; text-decoration: none">Create a token on github.com<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 7.5 8.5"/><path d="M12 9.5v4H2.5V4h4"/></svg></a>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 16px 0; border-top: 1px solid #2E3339">
+<h2 style="margin: 0; font-size: 14px; font-weight: 600">Backups</h2>
+<p style="margin: 0; color: #9BA3AD; max-width: 560px">Removed and replaced addons are moved here, never deleted.</p>
+<div style="display: flex; gap: 8px; align-items: center">
+<span style="flex: 1; min-width: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED4; padding: 7px 10px; background: #1A1D21; border: 1px solid #2E3339; border-radius: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis">C:\Users\you\AppData\Local\wam\backups</span>
+<button type="button" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid #3A4048; background: #262A30; color: #E7E9EC"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 7.5 8.5"/><path d="M12 9.5v4H2.5V4h4"/></svg>Open folder</button>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 8px; padding: 16px 0; border-top: 1px solid #2E3339">
+<h2 style="margin: 0; font-size: 14px; font-weight: 600">About</h2>
+<p style="margin: 0; color: #9BA3AD">wam <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED4">[VERSION]</span> · for World of Warcraft Forever 1.60</p>
+</section>
+</div>
+</main>
+<footer style="flex: none; height: 30px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 16px; background: #1A1D21; border-top: 1px solid #2E3339; font-size: 12px">
+<span style="display: flex; color: #9BA3AD"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><circle cx="8" cy="8" r="6"/><path d="M8 7.5v3.5"/><path d="M8 5v.01"/></svg></span><span style="flex: 1; color: #C9CED4">Last check 14:02 · 2 updates available</span>
+<button type="button" style="height: 30px; box-sizing: border-box; padding: 0 12px; border-radius: 4px; font-family: Inter, sans-serif; font-size: 13px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; flex: none; border: 1px solid transparent; background: transparent; color: #C9CED4; height: 24px; padding: 0 8px; font-size: 12px">Activity<span style="color: #9BA3AD">(3)</span><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M4 10l4-4 4 4"/></svg></button>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"folderMissing":{"editor":"boolean","default":false},"rateLimited":{"editor":"boolean","default":false},"$preview":{"width":960,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (x) => x === true || x === 'true';
+    const invalid = t(this.props.folderMissing);
+    const rate = t(this.props.rateLimited);
+    return {
+      valid: !invalid, invalid, rate,
+      dir: invalid ? 'D:\\Games\\World of Warcraft\\_forever_\\Interface\\AddOns' : 'C:\\Program Files (x86)\\World of Warcraft\\_forever_\\Interface\\AddOns',
+      dirBorder: invalid ? '#B5544B' : '#3A4048',
+      tok: rate ? '' : 'ghp_xxxxxxxxxxxxxxxxxxxx'
+    };
+  }
+}
+</script>
+</body>
+</html>

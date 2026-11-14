@@ -33,4 +33,6 @@ First stable release.
 - The Windows build is tested under Wine, not on a real Windows machine.
 - Updating addons while the game runs can fail on Windows because the game keeps files open;
   wam rolls back and warns first.
+- The Windows app draws with DirectX 12 or Vulkan (Windows 10 or later); if the window
+  doesn't open, use the command-line tool.
 - No macOS build, and the desktop app does not update itself.

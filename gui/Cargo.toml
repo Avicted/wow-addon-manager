@@ -21,6 +21,11 @@ rfd = { version = "0.18", default-features = false, features = ["xdg-portal", "w
 open = "5"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
+# Windows renders with wgpu (DirectX 12 or Vulkan): eframe's OpenGL backend panics at startup
+# when the driver offers no suitable pixel format (Wine, remote desktop, some VMs).
+[target.'cfg(windows)'.dependencies]
+eframe = { version = "0.37", default-features = false, features = ["wgpu"] }
+
 [dev-dependencies]
 # Renders the real UI headlessly (wgpu) and clicks it through accessibility labels.
 egui_kittest = { version = "0.37", features = ["wgpu", "snapshot"] }

@@ -21,6 +21,14 @@ use app::{App, Cmd, Tab, Tone};
 use theme::{Icon, Weight};
 use widgets::{Button, Kind, mono, text, truncated};
 
+/// OpenGL on Linux; wgpu on Windows, where OpenGL support varies too much between drivers.
+fn renderer() -> eframe::Renderer {
+    #[cfg(windows)]
+    return eframe::Renderer::Wgpu;
+    #[cfg(not(windows))]
+    return eframe::Renderer::Glow;
+}
+
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
@@ -28,7 +36,7 @@ fn main() -> eframe::Result {
             .with_app_id("wam")
             .with_inner_size([960.0, 640.0])
             .with_min_inner_size([720.0, 480.0]),
-        renderer: eframe::Renderer::Glow,
+        renderer: renderer(),
         // Beside wam's own state, so WAM_DATA_DIR moves both.
         persistence_path: Some(wam::data_dir().join("gui")),
         ..Default::default()

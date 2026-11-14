@@ -22,7 +22,8 @@ you only need one of them.
 
 - **Windows:** the files aren't code-signed, so SmartScreen shows "Windows protected your PC":
   choose *More info*, then *Run anyway*. Some antivirus tools may warn because the app unpacks
-  and runs its built-in `wam.exe`.
+  and runs its built-in `wam.exe`. It needs Windows 10 or later with a DirectX 12 or Vulkan
+  graphics driver; without one, use the command-line tool.
 - **Linux:** `chmod +x wam-gui-*-linux-amd64`, then run it. It needs OpenGL (Mesa) and either
   Wayland or X11, which a desktop system already has.
 

@@ -56,14 +56,14 @@ func TestPickGitHubAsset(t *testing.T) {
 			{"filename":"Q-classic.zip","metadata":[{"flavor":"classic"}]},
 			{"filename":"Q.zip","metadata":[{"flavor":"mists"},{"flavor":"forever"}]}]}`))
 	})
-	assets := []ghAsset{{"Q-classic.zip", "c"}, {"Q.zip", "q"}, {"Q-nolib.zip", "n"}, {"release.json", url}}
+	assets := []ghAsset{{Name: "Q-classic.zip", URL: "c"}, {Name: "Q.zip", URL: "q"}, {Name: "Q-nolib.zip", URL: "n"}, {Name: "release.json", URL: url}}
 	if a, err := pickGitHubAsset(assets); err != nil || a.Name != "Q.zip" {
 		t.Fatalf("with release.json: %v %v", a, err)
 	}
-	if a, err := pickGitHubAsset([]ghAsset{{"X-retail.zip", ""}, {"X-forever.zip", ""}}); err != nil || a.Name != "X-forever.zip" {
+	if a, err := pickGitHubAsset([]ghAsset{{Name: "X-retail.zip", URL: ""}, {Name: "X-forever.zip", URL: ""}}); err != nil || a.Name != "X-forever.zip" {
 		t.Fatalf("by name: %v %v", a, err)
 	}
-	if _, err := pickGitHubAsset([]ghAsset{{"X-retail.zip", ""}, {"X-classic.zip", ""}}); err == nil {
+	if _, err := pickGitHubAsset([]ghAsset{{Name: "X-retail.zip", URL: ""}, {Name: "X-classic.zip", URL: ""}}); err == nil {
 		t.Fatal("ambiguous assets: want error")
 	}
 }
@@ -133,7 +133,7 @@ func TestGithubLatestUsesReleaseJSON(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": "v1.2", "assets": []map[string]string{
 				{"name": "r-classic.zip", "browser_download_url": base + "/dl/classic"},
 				{"name": "r-nolib.zip", "browser_download_url": base + "/dl/nolib"},
-				{"name": "r.zip", "browser_download_url": base + "/dl/forever"},
+				{"name": "r.zip", "browser_download_url": base + "/dl/forever", "digest": "sha256:ABCDEF0123"},
 				{"name": "release.json", "browser_download_url": base + "/release.json"},
 			}})
 		case "/release.json":
@@ -147,7 +147,7 @@ func TestGithubLatestUsesReleaseJSON(t *testing.T) {
 	})
 	base = githubAPI
 	rel, err := githubLatest("o/r")
-	if err != nil || rel.ID != "v1.2" || rel.URL != base+"/dl/forever" {
+	if err != nil || rel.ID != "v1.2" || rel.URL != base+"/dl/forever" || rel.SHA256 != "abcdef0123" {
 		t.Fatalf("got %+v, %v", rel, err)
 	}
 }
@@ -342,5 +342,18 @@ func TestCurseLatestFailuresAreNotCached(t *testing.T) {
 	fail = false
 	if rel, err := curseLatest("43"); err != nil || rel.ID != "3" {
 		t.Fatalf("after recovery: %+v, %v", rel, err)
+	}
+}
+
+func TestGithubDigestOnlySha256(t *testing.T) {
+	for digest, want := range map[string]string{"sha256:AB12": "ab12", "": "", "sha512:ab12": "", "ab12": ""} {
+		stub(t, func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": "v1", "assets": []map[string]string{
+				{"name": "only.zip", "browser_download_url": "u", "digest": digest},
+			}})
+		})
+		if rel, err := githubLatest("o/r"); err != nil || rel.SHA256 != want {
+			t.Errorf("digest %q: got %q, %v; want %q", digest, rel.SHA256, err, want)
+		}
 	}
 }

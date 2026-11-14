@@ -66,6 +66,7 @@ func (p Project) Ref() string { return p.Source + ":" + p.ID }
 // Release is one downloadable build of a project for the Forever client.
 type Release struct {
 	ID, Version, URL string
+	SHA256           string // hex digest of the file when the source publishes one, else empty
 }
 
 type httpError struct {
@@ -383,8 +384,9 @@ func curseRel(project string, f curseFile) Release {
 }
 
 type ghAsset struct {
-	Name string `json:"name"`
-	URL  string `json:"browser_download_url"`
+	Name   string `json:"name"`
+	URL    string `json:"browser_download_url"`
+	Digest string `json:"digest"` // "sha256:<hex>"; absent on older releases
 }
 
 // githubLatest picks the Forever zip from the latest release, using the BigWigs packager's
@@ -404,7 +406,11 @@ func githubLatest(repo string) (Release, error) {
 	if err != nil {
 		return Release{}, fmt.Errorf("%s %s: %w", repo, rel.Tag, err)
 	}
-	return Release{ID: rel.Tag, Version: rel.Tag, URL: asset.URL}, nil
+	sum, _ := strings.CutPrefix(strings.ToLower(asset.Digest), "sha256:")
+	if asset.Digest != "" && sum == strings.ToLower(asset.Digest) {
+		sum = "" // some other algorithm: not checked
+	}
+	return Release{ID: rel.Tag, Version: rel.Tag, URL: asset.URL, SHA256: sum}, nil
 }
 
 func pickGitHubAsset(assets []ghAsset) (ghAsset, error) {

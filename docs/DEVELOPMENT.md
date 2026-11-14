@@ -58,6 +58,19 @@ Windows can be checked under Wine: `cargo build --release --target x86_64-pc-win
 `gcc-mingw-w64` and the rustup target), then `wine target/x86_64-pc-windows-gnu/release/wam-gui.exe`.
 The design handover (tokens, mockups, copy) is in `docs/gui-design/`.
 
+The app icon is `gui/assets/icon.svg`; `icon.png` (window icon, Linux launcher icon) and
+`icon.ico` (embedded in the Windows `.exe` by `build.rs`) are committed renders of it:
+
+```
+cd gui/assets
+rsvg-convert -w 256 -h 256 icon.svg -o icon.png
+magick icon.png -define icon:auto-resize=256,128,64,48,32,24,16 icon.ico
+```
+
+On Linux the app writes `applications/wam.desktop` and `icons/hicolor/256x256/apps/wam.png`
+under `$XDG_DATA_HOME` at start-up, because Wayland takes the taskbar icon from the `.desktop`
+file that matches the app id (`wam`).
+
 ## Releasing
 
 1. Set `VERSION` and date the `## [x.y.z]` entry in `CHANGELOG.md`; commit `chore(release): x.y.z`.

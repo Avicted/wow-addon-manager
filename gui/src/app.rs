@@ -734,6 +734,11 @@ impl App {
         self.queue.push_back(Cmd::Status { rescan: false });
     }
 
+    /// An error in the activity log, for problems that happen outside a command.
+    pub fn log_error(&mut self, message: String) {
+        self.add_log(Tone::Error, message);
+    }
+
     fn add_log(&mut self, tone: Tone, message: String) {
         self.log.push(LogLine {
             time: copy::clock(Local::now()),

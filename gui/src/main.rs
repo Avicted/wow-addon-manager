@@ -35,6 +35,9 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default()
             .with_title(format!("wam | v{}", wam::VERSION))
             .with_app_id("wam")
+            .with_icon(
+                eframe::icon_data::from_png_bytes(wam::ICON_PNG).expect("assets/icon.png is a PNG"),
+            )
             .with_inner_size([960.0, 640.0])
             .with_min_inner_size([720.0, 480.0]),
         renderer: renderer(),
@@ -54,11 +57,14 @@ fn main() -> eframe::Result {
                 .unwrap_or_default();
             let bin = wam::unpack(&wam::data_dir())
                 .map_err(|e| format!("Couldn\u{2019}t prepare wam: {e}"));
-            Ok(Box::new(Shell(App::new(
-                cc.egui_ctx.clone(),
-                settings,
-                bin,
-            ))))
+            let mut app = App::new(cc.egui_ctx.clone(), settings, bin);
+            if cfg!(target_os = "linux")
+                && let Err(e) = std::env::current_exe()
+                    .and_then(|exe| wam::install_desktop_entry(&wam::data_home(), &exe))
+            {
+                app.log_error(format!("Couldn\u{2019}t install the launcher icon: {e}"));
+            }
+            Ok(Box::new(Shell(app)))
         }),
     )
 }

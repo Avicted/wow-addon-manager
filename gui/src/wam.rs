@@ -159,6 +159,19 @@ pub fn parse(line: &str) -> Result<Event, serde_json::Error> {
     serde_json::from_str(line)
 }
 
+/// `$XDG_DATA_HOME`, or `~/.local/share`.
+pub fn data_home() -> PathBuf {
+    std::env::var_os("XDG_DATA_HOME")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            std::env::home_dir()
+                .unwrap_or_default()
+                .join(".local")
+                .join("share")
+        })
+}
+
 /// Where wam keeps its state and backups: the same rule as the CLI's.
 pub fn data_dir() -> PathBuf {
     let var = |k| {
@@ -175,10 +188,49 @@ pub fn data_dir() -> PathBuf {
             .unwrap_or_else(|| home().join("AppData").join("Local"))
             .join("wam")
     } else {
-        var("XDG_DATA_HOME")
-            .unwrap_or_else(|| home().join(".local").join("share"))
-            .join("wam")
+        data_home().join("wam")
     }
+}
+
+/// The window icon, also installed as the launcher icon.
+pub static ICON_PNG: &[u8] = include_bytes!("../assets/icon.png");
+
+/// Gives the app a launcher entry and icon under `data_home` (`$XDG_DATA_HOME`).
+///
+/// Wayland compositors take the window and taskbar icon from the `.desktop` file that matches the
+/// app id (`wam`), not from the window itself. Files are only written when missing or different,
+/// so this is cheap at every start. Returns the paths it wrote.
+pub fn install_desktop_entry(data_home: &Path, exe: &Path) -> io::Result<Vec<PathBuf>> {
+    let exec = exe
+        .to_string_lossy()
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"");
+    let entry = format!(
+        "[Desktop Entry]\nType=Application\nName=wam\nComment=Keeps your World of Warcraft addons up to date\n\
+         Exec=\"{exec}\"\nIcon=wam\nCategories=Game;Utility;\nStartupWMClass=wam\nTerminal=false\n"
+    );
+    let files = [
+        (
+            data_home.join("applications/wam.desktop"),
+            entry.into_bytes(),
+        ),
+        (
+            data_home.join("icons/hicolor/256x256/apps/wam.png"),
+            ICON_PNG.to_vec(),
+        ),
+    ];
+    let mut written = Vec::new();
+    for (path, content) in files {
+        if fs::read(&path).ok().as_deref() == Some(content.as_slice()) {
+            continue;
+        }
+        if let Some(dir) = path.parent() {
+            fs::create_dir_all(dir)?;
+        }
+        fs::write(&path, content)?;
+        written.push(path);
+    }
+    Ok(written)
 }
 
 /// Writes the embedded wam to `<data dir>/bin/wam-<version>` unless it is already there,
@@ -323,6 +375,25 @@ mod tests {
         assert_eq!(d.hits[0].downloads, None);
         assert_eq!(d.hits[1].reference, None);
         assert_eq!(d.hits[1].downloads, Some(66660));
+    }
+
+    #[test]
+    fn desktop_entry_is_written_once_and_rewritten_when_the_exe_moves() {
+        let dir = std::env::temp_dir().join(format!("wam-desktop-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        let exe = Path::new("/opt/my apps/wam-gui");
+        assert_eq!(install_desktop_entry(&dir, exe).unwrap().len(), 2);
+        let entry = fs::read_to_string(dir.join("applications/wam.desktop")).unwrap();
+        assert!(entry.contains("Exec=\"/opt/my apps/wam-gui\"\n"));
+        assert!(entry.contains("Icon=wam\n") && entry.contains("StartupWMClass=wam\n"));
+        assert_eq!(
+            fs::read(dir.join("icons/hicolor/256x256/apps/wam.png")).unwrap(),
+            ICON_PNG
+        );
+        assert!(install_desktop_entry(&dir, exe).unwrap().is_empty());
+        let moved = install_desktop_entry(&dir, Path::new("/usr/bin/wam-gui")).unwrap();
+        assert_eq!(moved, vec![dir.join("applications/wam.desktop")]);
+        fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

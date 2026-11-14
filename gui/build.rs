@@ -24,6 +24,19 @@ fn main() {
     };
     println!("cargo:rerun-if-changed={}", bin.display());
     println!("cargo:rustc-env=WAM_EMBED={}", bin.display());
+
+    embed_windows_icon();
+}
+
+/// The .exe's icon in Explorer and the taskbar. Cross-builds use MinGW's windres.
+fn embed_windows_icon() {
+    println!("cargo:rerun-if-changed=assets/icon.ico");
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        winresource::WindowsResource::new()
+            .set_icon("assets/icon.ico")
+            .compile()
+            .expect("embedding assets/icon.ico (needs windres, from MinGW or binutils)");
+    }
 }
 
 fn go_build(repo: &std::path::Path, out: &std::path::Path, version: &str) -> PathBuf {

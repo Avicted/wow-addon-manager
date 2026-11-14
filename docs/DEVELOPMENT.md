@@ -9,7 +9,12 @@ make image        the runtime image (wam:VERSION); its build runs the tests too
 make smoke        the image reports VERSION and can change a mounted AddOns directory
 make dist         static binaries in build/dist (wam, wam.exe)
 make gui          test, then build/dist/wam-gui and build/dist/wam-gui.exe
+make gui-run      make gui, then open build/dist/wam-gui (what users get)
+make gui-dev      run the app from source with cargo run (needs Rust and Go on the host)
 make gui-test     cargo fmt --check, clippy and the GUI tests
+make check        everything CI runs: the tests above, smoke, dist, gui, pre-commit, release-check
+make new-version BUMP=minor   bump VERSION and add the CHANGELOG section (see Releasing)
+make undo-version take the last new-version back
 make release-check  VERSION has a CHANGELOG entry (TAG=vX.Y.Z also checks the tag)
 make release-assets versioned binaries and SHA256SUMS in build/release
 make pre-commit   every hook on every file
@@ -39,11 +44,12 @@ make status ADDONS_DIR=/tmp/wam-try/Interface/AddOns DATA_DIR=/tmp/wam-try/data
 ## Desktop app
 
 `gui/` is a cargo crate. Its `build.rs` embeds `wam`: `$WAM_BIN` if set, otherwise it runs
-`go build` for the cargo target, so with Go installed a plain `cargo run` works:
+`go build` for the cargo target, so with Go installed a plain `cargo run` works. `make gui-dev`
+does that with `ADDONS_DIR` and `DATA_DIR` like the other targets (`make gui-run` opens the
+binary built by `make gui` instead). To try it on a copy of your addons:
 
 ```
-cd gui
-WAM_ADDONS_DIR=/tmp/wam-try/Interface/AddOns WAM_DATA_DIR=/tmp/wam-try/data cargo run
+make gui-dev ADDONS_DIR=/tmp/wam-try/Interface/AddOns DATA_DIR=/tmp/wam-try/data
 ```
 
 `make gui` does the Linux and Windows builds in `Dockerfile.gui` (Debian bookworm for an old
@@ -83,6 +89,18 @@ file that matches the app id (`wam`).
    the changelog section covers every commit, so tag the release you already shipped first.
 4. `.github/workflows/release.yml` checks the tag against `VERSION` and the changelog, runs the
    tests, builds the four binaries and publishes a GitHub Release with `SHA256SUMS`.
+
+## CI
+
+`.github/workflows/ci.yml` runs `make check` on every push and pull request, plus a check that
+commit subjects follow Conventional Commits. `release.yml` runs on a `v*` tag.
+
+Jobs prefer the self-hosted runner (labels `self-hosted`, `linux`), which needs Docker, `make`
+and a user allowed to run `docker`. GitHub cannot fall back by itself when that runner is
+offline: set the repository variable `CI_RUNNER` to `"ubuntu-latest"` (with the quotes; Settings,
+Secrets and variables, Actions, Variables) to use GitHub's runners, and delete it to go back.
+Don't point a self-hosted runner at a public repository without requiring approval for pull
+requests from forks (Settings, Actions, General): they would run on your machine.
 
 ## Hooks
 

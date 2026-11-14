@@ -22,7 +22,7 @@ AS_ME := --user $(shell id -u):$(shell id -g)
 TTY   := $(shell [ -t 0 ] && echo -t)
 
 .DEFAULT_GOAL := help
-.PHONY: help status update install remove search track wam image dist gui gui-test release-check new-version undo-version release-assets release-notes smoke test check cover pre-commit hooks clean
+.PHONY: help status update install remove search track wam image dist gui gui-run gui-dev gui-test release-check new-version undo-version release-assets release-notes smoke test check cover pre-commit hooks clean
 
 help: ## Help: list every command
 	@color=; [ -t 1 ] && [ -z "$${NO_COLOR:-}" ] && color=1; \
@@ -94,6 +94,9 @@ gui: ## Build: test, then export the desktop app to build/dist (wam-gui, wam-gui
 	docker build -f Dockerfile.gui --target gui --output type=local,dest=$(BUILD)/dist .
 	@ls -l $(BUILD)/dist/wam-gui $(BUILD)/dist/wam-gui.exe
 
+gui-run: gui ## Addons: build and open the desktop app, the same binary users download
+	@WAM_ADDONS_DIR="$(ADDONS_DIR)" WAM_DATA_DIR="$(DATA_DIR)" $(BUILD)/dist/wam-gui
+
 release-check: ## Build: check VERSION has a CHANGELOG section (and matches TAG=vX.Y.Z if given)
 	@$(if $(TAG),[ "$(TAG)" = "v$(VERSION)" ] || { echo "release-check: tag $(TAG) does not match VERSION $(VERSION)"; exit 1; };) \
 		[ -n "$$($(MAKE) -s release-notes)" ] || { echo "release-check: CHANGELOG.md has no entry for $(VERSION)"; exit 1; }
@@ -155,6 +158,9 @@ check: test gui-test smoke dist gui pre-commit release-check ## Development: run
 test: ## Development: go vet, go test and go test -race (always re-run, even if cached)
 	docker build --target test --no-cache-filter test --progress plain .
 	docker build --target race --no-cache-filter race --progress plain .
+
+gui-dev: ## Development: run the desktop app from source with cargo run (needs Rust and Go on the host)
+	@cd gui && WAM_ADDONS_DIR="$(ADDONS_DIR)" WAM_DATA_DIR="$(DATA_DIR)" cargo run
 
 gui-test: ## Development: cargo fmt --check, clippy and the GUI tests (always re-run)
 	docker build -f Dockerfile.gui --target test --no-cache-filter test --progress plain .

@@ -93,6 +93,7 @@ Run `make` for the full list.
 
 | Command | Does |
 |---|---|
+| `make gui-run` | Build and open the desktop app |
 | `make status` | Installed and latest version of every addon |
 | `make update` | Update everything that has an update |
 | `make update ARGS="Questie -n"` | Only the named addons; `-n` shows what would change |

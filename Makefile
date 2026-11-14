@@ -22,7 +22,7 @@ AS_ME := --user $(shell id -u):$(shell id -g)
 TTY   := $(shell [ -t 0 ] && echo -t)
 
 .DEFAULT_GOAL := help
-.PHONY: help status update install remove search track wam image dist gui gui-run gui-dev gui-test release release-check new-version undo-version release-assets release-notes smoke test check cover pre-commit hooks clean
+.PHONY: help status update install remove search track wam image dist gui gui-run gui-dev gui-test release release-check version-check new-version undo-version release-assets release-notes smoke test check cover pre-commit hooks clean
 
 help: ## Help: list every command
 	@color=; [ -t 1 ] && [ -z "$${NO_COLOR:-}" ] && color=1; \
@@ -97,13 +97,23 @@ gui: ## Build: test, then export the desktop app to build/dist (wam-gui, wam-gui
 gui-run: gui ## Addons: build and open the desktop app, the same binary users download
 	@WAM_ADDONS_DIR="$(ADDONS_DIR)" WAM_DATA_DIR="$(DATA_DIR)" $(BUILD)/dist/wam-gui
 
+# With TAG it also checks the tag sits on the commit make release made for VERSION.
 release-check: ## Build: check VERSION has a CHANGELOG section (and matches TAG=vX.Y.Z if given)
-	@$(if $(TAG),[ "$(TAG)" = "v$(VERSION)" ] || { echo "release-check: tag $(TAG) does not match VERSION $(VERSION)"; exit 1; };) \
+	@$(if $(TAG),[ "$(TAG)" = "v$(VERSION)" ] || { echo "release-check: tag $(TAG) does not match VERSION $(VERSION)"; exit 1; }; \
+		[ "$$(git log -1 --format=%s)" = "chore(release): $(VERSION)" ] || \
+			{ echo "release-check: $(TAG) is not on a 'chore(release): $(VERSION)' commit; release with make release"; exit 1; };) \
 		[ -n "$$($(MAKE) -s release-notes)" ] || { echo "release-check: CHANGELOG.md has no entry for $(VERSION)"; exit 1; }
 	@echo "release-check: OK ($(VERSION))"
 
 release-notes:
 	@./scripts/changelog.sh --section "$(VERSION)"
+
+# The commits since the last v* tag by default; CI passes the range of the push.
+LAST_TAG := $(shell git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null)
+RANGE    ?= $(if $(LAST_TAG),$(LAST_TAG)..HEAD,HEAD)
+
+version-check: ## Build: check every VERSION change in RANGE (default: since the last tag) came from make release
+	@./scripts/check-version-bumps.sh "$(RANGE)"
 
 # make new-version BUMP=<major|minor|patch>
 # Bumps VERSION and adds a CHANGELOG.md section generated from the commits since the last tag,
@@ -173,7 +183,7 @@ clean: ## Build: delete build/ (binaries, image stamps, tool caches)
 # Development.
 
 # Everything CI runs, in one go. Each step is its own target, so a failure names the step.
-check: test gui-test smoke dist gui pre-commit release-check ## Development: run everything CI runs (tests, GUI, smoke, builds, hooks, release-check)
+check: test gui-test smoke dist gui pre-commit release-check version-check ## Development: run everything CI runs (tests, GUI, smoke, builds, hooks, release and version checks)
 
 test: ## Development: go vet, go test and go test -race (always re-run, even if cached)
 	docker build --target test --no-cache-filter test --progress plain .

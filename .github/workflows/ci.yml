@@ -61,3 +61,5 @@ jobs:
           echo "Checking $range"
           git log --format='%h %s' "$range" \
             | docker run --rm -i ghcr.io/avicted/conventional-commits:v1.1.0@sha256:aa84170cf7a56d5c2fa322c70ae7462e11ef0ef6eb9a740afb29887b1183d485
+          # Every VERSION change must be a `make release` commit.
+          make version-check RANGE="$range"

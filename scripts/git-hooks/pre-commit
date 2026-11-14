@@ -2,5 +2,12 @@
 # Installed by `make hooks` (git config core.hooksPath scripts/git-hooks).
 # Runs the pre-commit stage of .pre-commit-config.yaml on the staged files,
 # through prek in Dockerfile.pre-commit.
+
+# Versions change only through `make release`, which sets WAM_RELEASE (CI checks it too).
+if [ -z "${WAM_RELEASE:-}" ] && git diff --cached --name-only | grep -qx VERSION; then
+	echo "pre-commit: VERSION is staged; bump the version with make release BUMP=<major|minor|patch>" >&2
+	exit 1
+fi
+
 exec make --no-print-directory -s -C "$(git rev-parse --show-toplevel)" prek \
 	ARGS="run --hook-stage pre-commit"

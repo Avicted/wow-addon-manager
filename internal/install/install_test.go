@@ -3,6 +3,8 @@ package install
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -291,4 +293,38 @@ func FuzzExtractZip(f *testing.F) {
 			}
 		}
 	})
+}
+
+func TestInstallChecksTheReleaseDigest(t *testing.T) {
+	body := makeZip(t, map[string]string{"Foo/Foo.toc": "## Version: 2\n"})
+	sum := sha256.Sum256(body)
+	good := hex.EncodeToString(sum[:])
+	for _, c := range []struct {
+		name, digest, wantErr string
+	}{
+		{"matching", strings.ToUpper(good), ""},
+		{"no digest", "", ""},
+		{"mismatch", strings.Repeat("0", 64), "SHA-256 is " + good},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			in := newInstaller(t)
+			writeFile(t, filepath.Join(in.AddonsDir, "Foo", "Foo.toc"), "## Version: 1\n")
+			in.Download = func(url, dst string) error { return os.WriteFile(dst, body, 0o644) }
+			a := &state.Addon{Name: "Foo", Source: source.Curse, Project: "42", Version: "1", Folders: []string{"Foo"}}
+			st := &state.State{AddonsDir: in.AddonsDir, Addons: []*state.Addon{a}}
+			err := in.Install(st, a, source.Release{ID: "7", Version: "2", SHA256: c.digest}, false)
+			wantVersion := "2"
+			if c.wantErr != "" {
+				wantVersion = "1"
+				if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+					t.Fatalf("err = %v, want %q", err, c.wantErr)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			if v := version(t, in.AddonsDir, "Foo"); v != wantVersion {
+				t.Fatalf("Foo has version %q, want %q", v, wantVersion)
+			}
+		})
+	}
 }

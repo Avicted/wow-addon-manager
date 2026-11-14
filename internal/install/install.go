@@ -4,6 +4,8 @@ package install
 
 import (
 	"archive/zip"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -163,6 +165,26 @@ func pruneBackups(dir string) {
 	}
 }
 
+// verifySHA256 checks a file against a hex digest; an empty digest means there is nothing to check.
+func verifySHA256(path, want string) error {
+	if want == "" {
+		return nil
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = f.Close() }()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return err
+	}
+	if got := hex.EncodeToString(h.Sum(nil)); !strings.EqualFold(got, want) {
+		return fmt.Errorf("SHA-256 is %s, the release says %s", got, want)
+	}
+	return nil
+}
+
 const stagingPrefix = ".wam-staging-"
 
 // CleanStaging removes staging directories left beside AddOns by a wam that was killed,
@@ -198,6 +220,9 @@ func (in *Installer) Install(st *state.State, a *state.Addon, rel source.Release
 		download = source.Download
 	}
 	if err := download(rel.URL, zipPath); err != nil {
+		return fmt.Errorf("download: %w", err)
+	}
+	if err := verifySHA256(zipPath, rel.SHA256); err != nil {
 		return fmt.Errorf("download: %w", err)
 	}
 

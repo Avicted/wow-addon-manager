@@ -54,7 +54,9 @@ first time:
 3. Otherwise `X-Website` pointing at CurseForge, or the folder name as a slug,
    accepted only if the project title matches the `.toc` title.
 4. Otherwise the folder is remembered as unresolved, so it isn't looked up
-   again (`-rescan` retries).
+   again (`-rescan` retries). Only a definitive "not found" (`source.ErrNotFound`)
+   counts: if a lookup failed for any other reason (network down, a 5xx), the
+   folder is left alone and the next run tries again.
 
 `## Dependencies` is deliberately not used for grouping: Guidelime depends on
 Questie and Journalator_Display on Auctionator, but they're separate projects.
@@ -77,6 +79,22 @@ comparison is by release id.
 4. Folders another addon owns: `update` refuses (two addons would keep
    overwriting each other); an explicit `install` takes them over, which is how
    an addon switches source (`install github:Questie/Questie`).
+
+## Running safely
+
+- One wam at a time: every command takes an exclusive `flock` on
+  `state.lock` in the data directory and fails at once if another holds it.
+- The first Ctrl-C (or SIGTERM) lets the addon being installed finish and skips
+  the rest of `update`, so AddOns is never left half swapped; a second one ends
+  wam. Staging directories a killed wam left beside AddOns are removed after an
+  hour.
+- Network errors, 429 and 502-504 are retried twice (1 s, then 3 s, or the
+  server's `Retry-After` up to 10 s). Other statuses are answers and aren't.
+- A CurseForge project's file list is fetched once per run.
+- A folder that can't be read is listed with a warning; it is never adopted,
+  nor forgotten if it was tracked.
+- When a GitHub release publishes a SHA-256 digest for the asset, the download
+  must match it before it is unpacked.
 
 ## Docker
 

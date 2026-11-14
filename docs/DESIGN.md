@@ -160,4 +160,4 @@ on stdin is ignored, so scripts using `-json` are unaffected.
 `<data dir>/bin/wam-<version>[.exe]` and runs it as a subprocess with `-json`. It has no addon
 logic of its own, so the CLI and the app always do the same thing to the same `state.json`. A
 subprocess instead of FFI keeps Go's cgo out of the build and lets both run side by side. The
-plan and the design handover are in [GUI-PLAN.md](GUI-PLAN.md) and [gui-design/](gui-design/).
+design handover is in [gui-design/](gui-design/).

@@ -380,15 +380,14 @@ enum RowAction {
 
 fn row(app: &App, ui: &mut Ui, i: usize, cols: &Columns, width: f32) -> Option<RowAction> {
     let r = &app.rows[i];
-    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 32.0), Sense::hover());
-    let bg = if resp.hovered() {
-        theme::ROW_HOVER
-    } else if i % 2 == 1 {
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 32.0), Sense::hover());
+    let base = if i % 2 == 1 {
         theme::ROW_STRIPE
     } else {
         theme::BACKGROUND
     };
-    ui.painter().rect_filled(rect, 0, bg);
+    ui.painter()
+        .rect_filled(rect, 0, widgets::row_fill(ui, rect, base));
     let cell = cells(rect, &cols.widths);
     let mut c = cell.iter();
 
@@ -613,15 +612,8 @@ fn sections(app: &mut App, ui: &mut Ui) {
                 resp.widget_info(|| {
                     egui::WidgetInfo::selected(egui::accesskit::Role::Button, true, open, *title)
                 });
-                ui.painter().rect_filled(
-                    rect,
-                    0,
-                    if resp.hovered() {
-                        theme::ROW_HOVER
-                    } else {
-                        theme::PANEL
-                    },
-                );
+                ui.painter()
+                    .rect_filled(rect, 0, widgets::row_fill(ui, rect, theme::PANEL));
                 if !first {
                     ui.painter()
                         .hline(rect.x_range(), rect.top(), Stroke::new(1.0, theme::BORDER));

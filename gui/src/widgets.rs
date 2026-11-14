@@ -253,6 +253,16 @@ pub fn in_rect<R>(ui: &mut Ui, rect: Rect, align: Align, add: impl FnOnce(&mut U
     add(&mut child)
 }
 
+/// A table row's background: `base`, or the hover colour while the pointer is over `rect`.
+/// Unlike `Response::hovered` this stays on while a mouse button is held down.
+pub fn row_fill(ui: &Ui, rect: Rect, base: Color32) -> Color32 {
+    if ui.rect_contains_pointer(rect) {
+        theme::ROW_HOVER
+    } else {
+        base
+    }
+}
+
 /// A count in a rounded pill.
 pub fn pill(ui: &mut Ui, count: usize, tint: &Tint) {
     let galley =

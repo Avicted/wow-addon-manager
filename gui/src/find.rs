@@ -175,9 +175,9 @@ fn hits(app: &mut App, ui: &mut Ui, width: f32) {
     let busy = app.busy();
     ScrollArea::vertical().id_salt("hits").auto_shrink([false, false]).max_height(ui.available_height() - note_h).show(ui, |ui| {
         for (i, hit) in data.hits.iter().enumerate() {
-            let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, 36.0), Sense::hover());
-            let bg = if resp.hovered() { theme::ROW_HOVER } else if i % 2 == 1 { theme::ROW_STRIPE } else { theme::BACKGROUND };
-            ui.painter().rect_filled(rect, 0, bg);
+            let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 36.0), Sense::hover());
+            let base = if i % 2 == 1 { theme::ROW_STRIPE } else { theme::BACKGROUND };
+            ui.painter().rect_filled(rect, 0, widgets::row_fill(ui, rect, base));
             let [c0, c1, c2] = split(rect);
             in_rect(ui, c0.shrink2(Vec2::new(12.0, 0.0)), Align::Min, |ui| truncated(ui, text(&hit.title, 13.0, Weight::Medium, theme::TEXT)));
             in_rect(ui, c1.shrink2(Vec2::new(12.0, 0.0)), Align::Max, |ui| match hit.downloads {

@@ -44,6 +44,10 @@ var (
 	downloadClient = &http.Client{Timeout: 15 * time.Minute}
 )
 
+// ErrNotFound marks a definitive "no such project, or no Forever build of it" answer, as
+// opposed to a network or server failure that may pass.
+var ErrNotFound = errors.New("not found")
+
 // Sources.
 const (
 	Curse  = "curse"
@@ -228,7 +232,7 @@ func CurseBySlug(slug string) (Project, error) {
 		return Project{}, fmt.Errorf("cfwidget is still indexing %q, try again in a minute", slug)
 	}
 	if isStatus(err, http.StatusNotFound) || err == nil && w.ID == 0 {
-		return Project{}, fmt.Errorf("no CurseForge addon with slug %q", slug)
+		return Project{}, fmt.Errorf("no CurseForge addon with slug %q: %w", slug, ErrNotFound)
 	}
 	if err != nil {
 		return Project{}, err
@@ -259,6 +263,9 @@ func githubProject(repo string) (Project, error) {
 		Name     string `json:"name"`
 	}
 	if err := getJSON(githubAPI+"/repos/"+repo, &r); err != nil {
+		if isStatus(err, http.StatusNotFound) {
+			err = fmt.Errorf("%w: %w", ErrNotFound, err)
+		}
 		return Project{}, fmt.Errorf("GitHub repo %s: %w", repo, err)
 	}
 	return Project{GitHub, r.FullName, r.Name}, nil
@@ -311,7 +318,7 @@ func curseLatest(id string) (Release, error) {
 		u := fmt.Sprintf("%s/mods/%s/files?pageIndex=%d&pageSize=%d&sort=dateCreated&sortDescending=true", curseAPI, id, page, pageSize)
 		if err := getJSON(u, &resp); err != nil {
 			if isStatus(err, http.StatusNotFound) {
-				return Release{}, fmt.Errorf("no CurseForge project %s", id)
+				return Release{}, fmt.Errorf("no CurseForge project %s: %w", id, ErrNotFound)
 			}
 			return Release{}, err
 		}
@@ -333,7 +340,7 @@ func curseLatest(id string) (Release, error) {
 	if fallback != nil {
 		return curseRel(id, *fallback), nil
 	}
-	return Release{}, fmt.Errorf("CurseForge project %s has no files for WoW Forever", id)
+	return Release{}, fmt.Errorf("CurseForge project %s has no files for WoW Forever: %w", id, ErrNotFound)
 }
 
 func curseRel(project string, f curseFile) Release {

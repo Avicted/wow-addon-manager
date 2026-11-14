@@ -2,6 +2,7 @@ package source
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -265,5 +266,37 @@ func TestRetryDelayHonorsRetryAfterWithCap(t *testing.T) {
 	}
 	if d, ok := retryDelay(&httpError{Code: 503}, 1); !ok || d != retryDelays[1] {
 		t.Fatalf("delay %v, %v; want %v", d, ok, retryDelays[1])
+	}
+}
+
+func TestDefinitiveAnswersAreErrNotFound(t *testing.T) {
+	stub(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/mods/") && r.URL.Query().Get("pageIndex") == "0" && strings.Contains(r.URL.Path, "/200/") {
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []curseFile{}, "pagination": map[string]int{"totalCount": 0}})
+			return
+		}
+		http.NotFound(w, r)
+	})
+	for name, err := range map[string]error{
+		"unknown slug":     func() error { _, err := CurseBySlug("nope"); return err }(),
+		"unknown project":  func() error { _, err := curseLatest("100"); return err }(),
+		"no forever files": func() error { _, err := curseLatest("200"); return err }(),
+		"unknown repo":     func() error { _, err := githubProject("o/r"); return err }(),
+	} {
+		if !errors.Is(err, ErrNotFound) {
+			t.Errorf("%s: %v is not ErrNotFound", name, err)
+		}
+	}
+}
+
+func TestFailuresAreNotErrNotFound(t *testing.T) {
+	fastRetries(t)
+	stub(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusBadGateway) })
+	if _, err := curseLatest("1"); err == nil || errors.Is(err, ErrNotFound) {
+		t.Fatalf("a 502 gave %v", err)
+	}
+	stub(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusAccepted) })
+	if _, err := CurseBySlug("indexing"); err == nil || errors.Is(err, ErrNotFound) {
+		t.Fatalf("cfwidget indexing gave %v", err)
 	}
 }

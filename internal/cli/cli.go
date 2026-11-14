@@ -52,6 +52,7 @@ type env struct {
 	out, err  io.Writer
 	inst      *install.Installer
 	lookup    state.Lookup
+	latest    func(source.Project) (source.Release, error)
 	color     bool
 }
 
@@ -116,7 +117,7 @@ func Run(args []string, out, errOut io.Writer, version string) int {
 		_, err = os.Stat(dir)
 	}
 	dataDir := dataDir(home)
-	e := &env{addonsDir: dir, out: out, err: errOut, lookup: source.Resolve, color: isTerminal(out)}
+	e := &env{addonsDir: dir, out: out, err: errOut, lookup: source.Resolve, latest: source.Latest, color: isTerminal(out)}
 	e.inst = &install.Installer{AddonsDir: dir, DataDir: dataDir, Log: e.logf}
 	if err != nil {
 		e.logf("wam: AddOns directory: %v", err)
@@ -194,7 +195,7 @@ func (c check) outdated(a *state.Addon) bool {
 	return c.rel.ID != a.Release
 }
 
-func checkAll(addons []*state.Addon) map[*state.Addon]check {
+func (e *env) checkAll(addons []*state.Addon) map[*state.Addon]check {
 	res := make(map[*state.Addon]check, len(addons))
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -203,7 +204,7 @@ func checkAll(addons []*state.Addon) map[*state.Addon]check {
 		wg.Go(func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			rel, err := source.Latest(a.Origin())
+			rel, err := e.latest(a.Origin())
 			mu.Lock()
 			res[a] = check{rel, err}
 			mu.Unlock()
@@ -221,7 +222,7 @@ func cmdStatus(e *env, st *state.State, args []string) error {
 	if err != nil {
 		return err
 	}
-	checks := checkAll(st.Addons)
+	checks := e.checkAll(st.Addons)
 	tw := tabwriter.NewWriter(e.out, 0, 0, 2, ' ', 0)
 	_, _ = fmt.Fprintln(tw, "ADDON\tINSTALLED\tLATEST\tSOURCE\tSTATUS")
 	updates, guessed := 0, false
@@ -333,7 +334,7 @@ func cmdUpdate(e *env, st *state.State, args []string) error {
 			}
 		}
 	}
-	checks := checkAll(targets)
+	checks := e.checkAll(targets)
 	var todo []*state.Addon
 	failed := 0
 	for _, a := range targets {
@@ -416,7 +417,7 @@ func cmdInstall(e *env, st *state.State, args []string) error {
 	if a != nil && !a.Adopted() {
 		return fmt.Errorf("%s is already installed; use: wam update %q", a.Name, a.Name)
 	}
-	rel, err := source.Latest(p)
+	rel, err := e.latest(p)
 	if err != nil {
 		return err
 	}

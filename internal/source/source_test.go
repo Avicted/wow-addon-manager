@@ -82,3 +82,129 @@ func TestCurseSlug(t *testing.T) {
 		t.Fatal("non-CurseForge URL matched")
 	}
 }
+
+// stub points every endpoint at one test server and restores them afterwards.
+func stub(t *testing.T, h http.HandlerFunc) {
+	t.Helper()
+	u := serve(t, h)
+	oldCurse, oldWidget, oldGH := curseAPI, cfwidgetAPI, githubAPI
+	curseAPI, cfwidgetAPI, githubAPI = u, u, u
+	t.Cleanup(func() { curseAPI, cfwidgetAPI, githubAPI = oldCurse, oldWidget, oldGH })
+}
+
+func TestCurseLatestPaginates(t *testing.T) {
+	for _, c := range []struct {
+		name      string
+		total     int
+		wantPages int
+		wantID    string
+		wantErr   bool
+	}{
+		{"found on the last page", 120, 3, "7", false},
+		{"stops at totalCount", 50, 1, "", true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			pages := 0
+			stub(t, func(w http.ResponseWriter, r *http.Request) {
+				pages++
+				var data []curseFile
+				if r.URL.Query().Get("pageIndex") == "2" {
+					data = []curseFile{{ID: 7, DisplayName: "1.60.1", ReleaseType: 1, GameVersionTypeIDs: []int{foreverTypeID}}}
+				} else {
+					data = []curseFile{{ID: 1, DisplayName: "retail", ReleaseType: 1, GameVersionTypeIDs: []int{517}}}
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"data": data, "pagination": map[string]int{"totalCount": c.total}})
+			})
+			rel, err := curseLatest("42")
+			if (err != nil) != c.wantErr || rel.ID != c.wantID || pages != c.wantPages {
+				t.Fatalf("rel %+v, err %v, %d pages; want id %q, err %v, %d pages", rel, err, pages, c.wantID, c.wantErr, c.wantPages)
+			}
+		})
+	}
+}
+
+func TestGithubLatestUsesReleaseJSON(t *testing.T) {
+	var base string
+	stub(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/o/r/releases/latest":
+			_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": "v1.2", "assets": []map[string]string{
+				{"name": "r-classic.zip", "browser_download_url": base + "/dl/classic"},
+				{"name": "r-nolib.zip", "browser_download_url": base + "/dl/nolib"},
+				{"name": "r.zip", "browser_download_url": base + "/dl/forever"},
+				{"name": "release.json", "browser_download_url": base + "/release.json"},
+			}})
+		case "/release.json":
+			_, _ = w.Write([]byte(`{"releases":[
+				{"filename":"r-classic.zip","metadata":[{"flavor":"classic"}]},
+				{"filename":"r-nolib.zip","nolib":true,"metadata":[{"flavor":"forever"}]},
+				{"filename":"r.zip","metadata":[{"flavor":"forever"}]}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	base = githubAPI
+	rel, err := githubLatest("o/r")
+	if err != nil || rel.ID != "v1.2" || rel.URL != base+"/dl/forever" {
+		t.Fatalf("got %+v, %v", rel, err)
+	}
+}
+
+func TestGithubLatestWithoutReleases(t *testing.T) {
+	stub(t, http.NotFound)
+	if _, err := githubLatest("o/r"); err == nil || !strings.Contains(err.Error(), "no published releases") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestResolveRoutesEachKindOfRef(t *testing.T) {
+	stub(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/repos/Questie/Questie":
+			_, _ = w.Write([]byte(`{"full_name":"Questie/Questie","name":"Questie"}`))
+		case strings.HasPrefix(r.URL.Path, "/mods/"):
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data":       []curseFile{{ID: 1, DisplayName: "1.60.1", ReleaseType: 1, GameVersionTypeIDs: []int{foreverTypeID}}},
+				"pagination": map[string]int{"totalCount": 1},
+			})
+		case r.URL.Path == "/wow/addons/details":
+			_, _ = w.Write([]byte(`{"id":61284,"title":"Details"}`))
+		case r.URL.Path == "/61284":
+			_, _ = w.Write([]byte(`{"id":61284,"title":"Details"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	})
+	for _, c := range []struct{ ref, want string }{
+		{"github:Questie/Questie", "github:Questie/Questie"},
+		{"https://github.com/Questie/Questie.git", "github:Questie/Questie"},
+		{"curse:61284", "curse:61284"},
+		{"61284", "curse:61284"},
+		{"details", "curse:61284"},
+		{"https://www.curseforge.com/wow/addons/details", "curse:61284"},
+	} {
+		p, err := Resolve(c.ref)
+		if err != nil || p.Ref() != c.want {
+			t.Errorf("Resolve(%q) = %+v, %v; want %s", c.ref, p, err, c.want)
+		}
+	}
+	if p, _ := Resolve("61284"); p.Title != "Details" {
+		t.Errorf("title = %q", p.Title)
+	}
+}
+
+func TestDownloadRefusesOversizeFiles(t *testing.T) {
+	url := serve(t, func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("0123456789")) })
+	old := maxDownload
+	t.Cleanup(func() { maxDownload = old })
+
+	maxDownload = 10
+	dst := t.TempDir() + "/ok.zip"
+	if err := Download(url, dst); err != nil {
+		t.Fatalf("file at the limit: %v", err)
+	}
+	maxDownload = 9
+	if err := Download(url, t.TempDir()+"/big.zip"); err == nil || !strings.Contains(err.Error(), "larger than") {
+		t.Fatalf("oversize file: err = %v", err)
+	}
+}

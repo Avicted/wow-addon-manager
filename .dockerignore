@@ -1,0 +1,5 @@
+# The build context only needs go.mod, cmd/ and internal/.
+*
+!go.mod
+!cmd/
+!internal/

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Installed by `make hooks` (git config core.hooksPath scripts/git-hooks).
+# Checks the commit message (Conventional Commits) through prek in
+# Dockerfile.pre-commit. $1 is the message file, relative to the repository root.
+exec make --no-print-directory -s -C "$(git rev-parse --show-toplevel)" prek \
+	ARGS="run --hook-stage commit-msg --commit-msg-filename $1"

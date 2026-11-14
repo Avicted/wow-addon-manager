@@ -1,0 +1,64 @@
+# This repository's hooks, run by prek inside Dockerfile.pre-commit:
+#
+#   make hooks        install the pre-commit and commit-msg git hooks
+#   make pre-commit   run every hook on every file
+#
+# Only published hook definitions, each pinned. The tools they call are the
+# `*-system` variants: Dockerfile.pre-commit puts digest-pinned binaries on PATH,
+# so no hook needs Python, Docker-in-Docker or anything on the host.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+
+repos:
+  # General hygiene: prek's built-in (Rust) versions of pre-commit-hooks.
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Secrets.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      # The published -system hook omits pass_filenames: false (its siblings set
+      # it), so gitleaks would get every staged file as an argument.
+      - id: gitleaks-system
+        pass_filenames: false
+
+  # Go: formatting (gofmt, goimports) and linting (.golangci.yml). The published
+  # hooks are language: golang; the binary is already in the image, so they run
+  # it as a system tool instead of building it on first use.
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v2.15.0
+    hooks:
+      - id: golangci-lint-fmt
+        language: system
+      - id: golangci-lint-full
+        language: system
+      - id: golangci-lint-config-verify
+        language: system
+
+  # Dockerfile and Dockerfile.pre-commit.
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.15.1
+    hooks:
+      - id: hadolint
+
+  # Commit subjects follow Conventional Commits. This mirrors the
+  # conventional-commit-system hook of Avicted/tools.conventional-commits, which
+  # is a private repository prek cannot clone; the binary comes from its public
+  # image (Dockerfile.pre-commit). Switch to the published hook if it goes public.
+  - repo: local
+    hooks:
+      - id: conventional-commit
+        name: Conventional Commit Checker
+        language: system
+        entry: conventional-commits
+        stages: [commit-msg]

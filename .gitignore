@@ -1,0 +1,2 @@
+# Binaries and every tool cache (prek, Go, golangci-lint) live here.
+build/

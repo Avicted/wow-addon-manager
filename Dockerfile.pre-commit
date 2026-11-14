@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+
+# The pre-commit toolchain: prek plus every tool the hooks call, so the only
+# thing a contributor needs is Docker (and make). The hooks themselves are the
+# tools' published `*-system` hooks (.pre-commit-config.yaml); this image is
+# what puts those binaries on PATH, each pinned by digest.
+#
+#   make hooks         install the git hooks (they run this image)
+#   make pre-commit    run every hook on every file
+
+FROM ghcr.io/j178/prek:0.5.10@sha256:26d789bb28d997ca39f9783656ac7fbd2ae4053e1084641b77c0867363d422d3 AS prek
+FROM ghcr.io/hadolint/hadolint:v2.15.1@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d AS hadolint
+FROM ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f AS gitleaks
+FROM golangci/golangci-lint:v2.15.0@sha256:fbfcfd12a6f8d7f1b97b3362ca80fc2a244d46863148c73cb88e7793af96c481 AS golangci-lint
+FROM ghcr.io/avicted/conventional-commits:v1.1.0@sha256:aa84170cf7a56d5c2fa322c70ae7462e11ef0ef6eb9a740afb29887b1183d485 AS conventional-commits
+
+# Go is needed at hook time: golangci-lint type-checks the module.
+FROM golang:1.27-alpine@sha256:eb61c3873c97416fff0116553fff65d67a3549f72e11d9758849a689cdd8b523
+
+# hadolint ignore=DL3018
+RUN apk add --no-cache git
+
+COPY --from=prek /prek /usr/local/bin/prek
+COPY --from=hadolint /bin/hadolint /usr/local/bin/hadolint
+COPY --from=gitleaks /usr/bin/gitleaks /usr/local/bin/gitleaks
+COPY --from=golangci-lint /usr/bin/golangci-lint /usr/local/bin/golangci-lint
+COPY --from=conventional-commits /conventional-commits /usr/local/bin/conventional-commits
+
+# The repository is bind-mounted and owned by the host user, who is not the
+# container user, so git would otherwise refuse it as "dubious ownership".
+# Every tool is run once so a broken copy fails the build, not a commit.
+RUN git config --system --add safe.directory '*' \
+    && prek --version && hadolint --version && gitleaks version \
+    && golangci-lint --version && conventional-commits --version
+
+# The container runs as the host user, who has no home here. The Makefile
+# points every cache (prek, Go, golangci-lint) into the repository's build/.
+ENV HOME=/tmp
+ENTRYPOINT ["prek"]

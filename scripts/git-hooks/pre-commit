@@ -1,0 +1,6 @@
+#!/bin/sh
+# Installed by `make hooks` (git config core.hooksPath scripts/git-hooks).
+# Runs the pre-commit stage of .pre-commit-config.yaml on the staged files,
+# through prek in Dockerfile.pre-commit.
+exec make --no-print-directory -s -C "$(git rev-parse --show-toplevel)" prek \
+	ARGS="run --hook-stage pre-commit"

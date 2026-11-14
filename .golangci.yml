@@ -1,0 +1,35 @@
+version: "2"
+
+linters:
+  # The standard set (errcheck, govet, ineffassign, staticcheck, unused) plus
+  # checks for the mistakes this code is most exposed to: unclosed HTTP bodies,
+  # shadowed errors, and misuse of the error-wrapping verbs.
+  enable:
+    - bodyclose
+    - errorlint
+    - gocritic
+    - misspell
+    - nolintlint
+    - revive
+    - unconvert
+    - usestdlibvars
+  settings:
+    # misspell keeps its default: typos only. A US/UK locale would also "fix"
+    # identifiers and wire formats, e.g. the "flavor" key of release.json.
+    revive:
+      rules:
+        - name: exported
+        - name: package-comments
+        - name: var-naming
+        - name: indent-error-flow
+        - name: unused-parameter
+          disabled: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Avicted/wow-addon-manager

@@ -1,0 +1,23 @@
+# Keeps every pin current. The prefixes keep Dependabot's commit subjects
+# conventional, so they pass the commit-msg check.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
+  # Dockerfile and Dockerfile.pre-commit, both pinned by digest.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: build
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: build

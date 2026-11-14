@@ -73,9 +73,14 @@ file that matches the app id (`wam`).
 
 ## Releasing
 
-1. Set `VERSION` and date the `## [x.y.z]` entry in `CHANGELOG.md`; commit `chore(release): x.y.z`.
-2. `make release-check` (and optionally `make release-assets` to build everything locally).
-3. Tag and push: `git tag vX.Y.Z && git push origin master vX.Y.Z`.
+1. On a clean tree, `make new-version BUMP=<major|minor|patch>`. It bumps `VERSION`, adds a
+   `## [x.y.z]` section to `CHANGELOG.md` from the conventional commits since the last tag
+   (`scripts/changelog.sh`) and runs `make release-check`. It does not commit or tag. Edit the
+   changelog if you want, then commit `chore(release): x.y.z`. `make undo-version` takes the bump
+   back.
+2. Optionally `make release-assets` to build everything locally.
+3. Tag and push: `git tag vX.Y.Z && git push origin master vX.Y.Z`. Until the first tag exists
+   the changelog section covers every commit, so tag the release you already shipped first.
 4. `.github/workflows/release.yml` checks the tag against `VERSION` and the changelog, runs the
    tests, builds the four binaries and publishes a GitHub Release with `SHA256SUMS`.
 

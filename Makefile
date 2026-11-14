@@ -22,7 +22,7 @@ AS_ME := --user $(shell id -u):$(shell id -g)
 TTY   := $(shell [ -t 0 ] && echo -t)
 
 .DEFAULT_GOAL := help
-.PHONY: help status update install remove search track wam image dist gui gui-test release-check release-assets release-notes smoke test cover pre-commit hooks clean
+.PHONY: help status update install remove search track wam image dist gui gui-test release-check new-version undo-version release-assets release-notes smoke test cover pre-commit hooks clean
 
 help: ## Help: list every command
 	@awk 'match($$0, /^[a-zA-Z0-9_-]+:.*## /) { \
@@ -97,7 +97,40 @@ release-check: ## Build: check VERSION has a CHANGELOG section (and matches TAG=
 	@echo "release-check: OK ($(VERSION))"
 
 release-notes:
-	@awk -v v="$(VERSION)" '/^## /{ on = index($$0, "## [" v "]") == 1; next } on' CHANGELOG.md | sed '/./,$$!d'
+	@./scripts/changelog.sh --section "$(VERSION)"
+
+# make new-version BUMP=<major|minor|patch>
+# Bumps VERSION and adds a CHANGELOG.md section generated from the commits since the last tag,
+# then runs release-check. It needs a clean tree, so the changelog matches what ships. It does not
+# commit or tag: review the diff, commit `chore(release): x.y.z`, tag and push.
+PREV_VERSION := $(BUILD)/.prev-version
+
+new-version: ## Build: bump VERSION (BUMP=major|minor|patch) and add its CHANGELOG section
+	@case "$(BUMP)" in major|minor|patch) ;; \
+		*) echo "usage: make new-version BUMP=<major|minor|patch>"; exit 2 ;; esac
+	@[ -z "$$(git status --porcelain)" ] || \
+		{ echo "new-version: commit your work first; the changelog is built from commits"; exit 1; }
+	@new=$$(awk -F. -v b="$(BUMP)" '{ \
+		if (b == "major") { $$1++; $$2 = 0; $$3 = 0 } \
+		else if (b == "minor") { $$2++; $$3 = 0 } \
+		else { $$3++ } \
+		printf "%d.%d.%d", $$1, $$2, $$3 }' VERSION); \
+	mkdir -p $(BUILD); cp VERSION $(PREV_VERSION); \
+	echo "$$new" > VERSION; \
+	echo "new-version: $(VERSION) -> $$new"; \
+	./scripts/changelog.sh "$$new"
+	@$(MAKE) --no-print-directory release-check
+
+# make undo-version puts back the version new-version replaced and removes the changelog section
+# it added. Only those are rewritten, so unrelated edits survive, and it works after the bump was
+# committed too (leaving a change to commit).
+undo-version: ## Build: undo the last new-version
+	@[ -f $(PREV_VERSION) ] || { echo "undo-version: no bump to undo (run new-version first)"; exit 1; }
+	@old=$$(cat $(PREV_VERSION)); \
+	./scripts/changelog.sh --remove "$(VERSION)"; \
+	echo "$$old" > VERSION; rm -f $(PREV_VERSION); \
+	echo "undo-version: $(VERSION) -> $$old"
+	@$(MAKE) --no-print-directory release-check
 
 release-assets: dist gui release-check ## Build: versioned binaries and SHA256SUMS in build/release
 	rm -rf $(BUILD)/release && mkdir -p $(BUILD)/release

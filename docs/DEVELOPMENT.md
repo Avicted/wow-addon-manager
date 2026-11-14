@@ -12,11 +12,13 @@ make gui          test, then build/dist/wam-gui and build/dist/wam-gui.exe
 make gui-run      make gui, then open build/dist/wam-gui (what users get)
 make gui-dev      run the app from source with cargo run (needs Rust and Go on the host)
 make gui-test     cargo fmt --check, clippy and the GUI tests
-make check        everything CI runs: the tests above, smoke, dist, gui, pre-commit, release-check
-make new-version BUMP=minor   bump VERSION and add the CHANGELOG section (see Releasing)
+make check        everything CI runs: the tests above, smoke, dist, gui, pre-commit, release-check, version-check
+make release BUMP=minor   ship a version: bump, changelog, commit, tag, push (see Releasing)
+make new-version BUMP=minor   only the bump and the CHANGELOG section (make release runs it)
 make undo-version take the last new-version back
-make release-check  VERSION has a CHANGELOG entry (TAG=vX.Y.Z also checks the tag)
-make release-assets versioned binaries and SHA256SUMS in build/release
+make release-check  VERSION has a CHANGELOG entry (TAG=vX.Y.Z also checks the tag and its commit)
+make version-check  every VERSION change since the last tag is a make release commit
+make release-assets release binaries and SHA256SUMS in build/release
 make pre-commit   every hook on every file
 make hooks        install the pre-commit git hook
 ```
@@ -79,21 +81,36 @@ file that matches the app id (`wam`).
 
 ## Releasing
 
-1. On a clean tree, `make new-version BUMP=<major|minor|patch>`. It bumps `VERSION`, adds a
-   `## [x.y.z]` section to `CHANGELOG.md` from the conventional commits since the last tag
-   (`scripts/changelog.sh`) and runs `make release-check`. It does not commit or tag. Edit the
-   changelog if you want, then commit `chore(release): x.y.z`. `make undo-version` takes the bump
-   back.
-2. Optionally `make release-assets` to build everything locally.
-3. Tag and push: `git tag vX.Y.Z && git push origin master vX.Y.Z`. Until the first tag exists
-   the changelog section covers every commit, so tag the release you already shipped first.
-4. `.github/workflows/release.yml` checks the tag against `VERSION` and the changelog, runs the
-   tests, builds the four binaries and publishes a GitHub Release with `SHA256SUMS`.
+Every version goes out through one command, on `master` with a clean tree:
+
+```
+make release BUMP=<major|minor|patch>
+```
+
+It runs `make new-version`, which bumps `VERSION`, adds a `## [x.y.z]` section to
+`CHANGELOG.md` from the conventional commits since the last tag (`scripts/changelog.sh`) and
+runs `make release-check`. Then it commits `chore(release): x.y.z`, tags `vx.y.z`, prints the
+release notes and asks before pushing `master` and the tag. Pushing the tag starts
+`.github/workflows/release.yml`, which checks the tag against `VERSION`, its commit and the
+changelog, runs the tests, builds the four binaries and publishes a GitHub Release with
+`SHA256SUMS`. That release becomes the one the README's download links fetch.
+
+To edit the changelog first, answer `n`, edit `CHANGELOG.md`, then
+`git commit --amend -a --no-edit`, `git tag -f -a vX.Y.Z -m vX.Y.Z` and the push it printed.
+To drop the release instead, use the undo it printed. `make release-assets` builds the release
+files locally if you want to try them first.
+
+Bumps made any other way are refused. The pre-commit hook rejects a staged `VERSION` outside
+`make release`. CI's `make version-check` fails any commit that changes `VERSION` unless it is
+exactly `chore(release): x.y.z`, changes only `VERSION` and `CHANGELOG.md`, moves one major,
+minor or patch step and has that changelog section. `release-check TAG=` fails a tag that isn't
+on such a commit.
 
 ## CI
 
 `.github/workflows/ci.yml` runs `make check` on every push and pull request, plus a check that
-commit subjects follow Conventional Commits. `release.yml` runs on a `v*` tag.
+commit subjects follow Conventional Commits and that the push's version bumps came from
+`make release` (`make version-check`). `release.yml` runs on a `v*` tag.
 
 Jobs prefer the self-hosted runner (labels `self-hosted`, `linux`), which needs Docker, `make`
 and a user allowed to run `docker`. GitHub cannot fall back by itself when that runner is

@@ -26,6 +26,7 @@ pub enum Tab {
     Addons,
     Find,
     Settings,
+    About,
 }
 
 /// One wam command.

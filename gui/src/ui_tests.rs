@@ -214,6 +214,19 @@ fn tabs_switch_screens() {
 }
 
 #[test]
+fn about_tab_shows_the_version_and_the_source_link() {
+    let mut h = harness(populated(), Vec2::new(960.0, 640.0));
+    h.get_by_label("About").click();
+    h.run_steps(2);
+    assert_eq!(h.state().tab, Tab::About);
+    assert!(h.query_by_label("Source code on GitHub").is_some());
+    assert!(
+        h.query_by_label(&format!("v{}", crate::wam::VERSION))
+            .is_some()
+    );
+}
+
+#[test]
 fn find_rows_sit_exactly_one_row_apart() {
     let hits: SearchData =
         serde_json::from_value(json!({"query": "map", "wago_unavailable": false, "hits": [
@@ -380,6 +393,10 @@ fn screenshots() {
         {"title": "Map Coordinates", "downloads": 52000, "installed": false, "url": "https://addons.wago.io/addons/mapcoords"},
         {"title": "WorldMapTrackingEnhanced", "ref": "curse:3", "downloads": null, "installed": false}]}))
     .unwrap();
+    let mut about = new_app();
+    about.tab = Tab::About;
+    shot("about", about, base, none);
+
     shot("find-results", find(FindPhase::Results(hits)), base, none);
     let mut idle = find(FindPhase::Idle);
     idle.find.query.clear();

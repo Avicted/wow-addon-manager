@@ -9,7 +9,6 @@ use crate::{
     app::{App, Cmd, Problem, Tone},
     copy,
     theme::{self, Icon, Weight},
-    wam,
     widgets::{self, Button, Kind, mono, text, truncated},
 };
 
@@ -31,23 +30,6 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     section(ui, false, |ui| rescan(app, ui));
                     section(ui, false, |ui| token(app, ui));
                     section(ui, false, |ui| backups(app, ui));
-                    section(ui, false, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing.x = 4.0;
-                            ui.label(text("About", 14.0, Weight::SemiBold, theme::TEXT));
-                        });
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing.x = 4.0;
-                            ui.label(text("wam", 13.0, Weight::Regular, theme::MUTED));
-                            ui.label(mono(wam::VERSION, theme::TEXT_SECONDARY));
-                            ui.label(text(
-                                "\u{b7} for World of Warcraft Forever 1.60",
-                                13.0,
-                                Weight::Regular,
-                                theme::MUTED,
-                            ));
-                        });
-                    });
                 });
         });
 }

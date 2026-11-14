@@ -3,6 +3,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // no console window on Windows
 
+mod about;
 mod addons;
 mod app;
 mod copy;
@@ -118,6 +119,7 @@ fn draw(app: &mut App, ui: &mut Ui) {
                 Tab::Addons => addons::show(app, ui),
                 Tab::Find => find::show(app, ui),
                 Tab::Settings => settings::show(app, ui),
+                Tab::About => about::show(ui),
             });
         addons::dialogs(app, ui.ctx());
     }
@@ -137,6 +139,7 @@ fn shortcuts(app: &mut App, ctx: &egui::Context) {
         (Key::Num1, Tab::Addons),
         (Key::Num2, Tab::Find),
         (Key::Num3, Tab::Settings),
+        (Key::Num4, Tab::About),
     ] {
         if pressed(k) && can_switch && tab_enabled(app, tab) {
             app.tab = tab;
@@ -173,6 +176,7 @@ fn top_bar(app: &mut App, ui: &mut Ui) {
             (Tab::Addons, "Addons"),
             (Tab::Find, "Find addons"),
             (Tab::Settings, "Settings"),
+            (Tab::About, "About"),
         ] {
             let enabled = !locked && tab_enabled(app, tab);
             if tab_button(

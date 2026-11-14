@@ -93,8 +93,9 @@ clean: ## Build: delete build/ (binaries, image stamps, tool caches)
 # ---------------------------------------------------------------------------
 # Development.
 
-test: ## Development: go vet and go test (always re-run, even if cached)
+test: ## Development: go vet, go test and go test -race (always re-run, even if cached)
 	docker build --target test --no-cache-filter test --progress plain .
+	docker build --target race --no-cache-filter race --progress plain .
 
 smoke: $(IMAGE_STAMP) ## Development: check the image runs and reports VERSION
 	@docker run --rm $(IMAGE) --version | grep -qx 'wam $(VERSION)' \

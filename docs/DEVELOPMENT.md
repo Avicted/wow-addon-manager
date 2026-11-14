@@ -3,7 +3,7 @@
 Everything runs in Docker through make; `make` lists the commands.
 
 ```
-make test         go vet + go test, in the Dockerfile's test stage
+make test         go vet + go test, then go test -race, in the Dockerfile's test and race stages
 make image        the runtime image (wam:VERSION); its build runs the tests too
 make smoke        the image reports VERSION and can change a mounted AddOns directory
 make dist         static binary in build/dist/wam

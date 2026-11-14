@@ -21,6 +21,14 @@ FROM source AS test
 RUN --mount=type=cache,target=/root/.cache/go-build \
     go vet ./... && go test ./... && touch /tested
 
+# The race detector needs cgo, so a C toolchain; the shipped binary stays CGO-free.
+# `make test` runs this stage; image builds don't wait for it.
+FROM source AS race
+# hadolint ignore=DL3018
+RUN apk add --no-cache gcc musl-dev
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=1 go test -race ./...
+
 FROM source AS compile
 ARG VERSION=dev
 COPY --from=test /tested /tested

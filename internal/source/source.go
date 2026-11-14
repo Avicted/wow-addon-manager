@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -303,9 +304,35 @@ func (f curseFile) forForever() bool {
 	return false
 }
 
-// curseLatest returns the newest Forever release file, falling back to the newest beta/alpha.
-// The website API ignores its gameVersionTypeId filter, so files are filtered here.
+// latestCache remembers each project's newest release for the life of the process: a command
+// often asks twice (checking a project exists, then installing it; adopting, then checking for
+// updates). Failures are not cached. Keyed by API URL as well so tests with several servers
+// don't share entries.
+var (
+	latestMu    sync.Mutex
+	latestCache = map[string]Release{}
+)
+
 func curseLatest(id string) (Release, error) {
+	key := curseAPI + "/" + id
+	latestMu.Lock()
+	rel, ok := latestCache[key]
+	latestMu.Unlock()
+	if ok {
+		return rel, nil
+	}
+	rel, err := fetchCurseLatest(id)
+	if err == nil {
+		latestMu.Lock()
+		latestCache[key] = rel
+		latestMu.Unlock()
+	}
+	return rel, err
+}
+
+// fetchCurseLatest returns the newest Forever release file, falling back to the newest beta/alpha.
+// The website API ignores its gameVersionTypeId filter, so files are filtered here.
+func fetchCurseLatest(id string) (Release, error) {
 	const pageSize, maxPages = 50, 4
 	var fallback *curseFile
 	for page := range maxPages {

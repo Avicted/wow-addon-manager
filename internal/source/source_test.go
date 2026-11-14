@@ -300,3 +300,47 @@ func TestFailuresAreNotErrNotFound(t *testing.T) {
 		t.Fatalf("cfwidget indexing gave %v", err)
 	}
 }
+
+func TestCurseLatestIsFetchedOncePerProject(t *testing.T) {
+	requests := 0
+	stub(t, func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data":       []curseFile{{ID: 3, DisplayName: "1.60.1", ReleaseType: 1, GameVersionTypeIDs: []int{foreverTypeID}}},
+			"pagination": map[string]int{"totalCount": 1},
+		})
+	})
+	for range 3 {
+		if rel, err := curseLatest("42"); err != nil || rel.ID != "3" {
+			t.Fatalf("got %+v, %v", rel, err)
+		}
+	}
+	if _, err := curseByID("42"); err != nil {
+		t.Fatal(err)
+	}
+	if requests != 2 { // one file list, plus curseByID's cfwidget title lookup
+		t.Fatalf("%d requests, want 2", requests)
+	}
+}
+
+func TestCurseLatestFailuresAreNotCached(t *testing.T) {
+	fastRetries(t)
+	fail := true
+	stub(t, func(w http.ResponseWriter, r *http.Request) {
+		if fail {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data":       []curseFile{{ID: 3, DisplayName: "1.60.1", ReleaseType: 1, GameVersionTypeIDs: []int{foreverTypeID}}},
+			"pagination": map[string]int{"totalCount": 1},
+		})
+	})
+	if _, err := curseLatest("43"); err == nil {
+		t.Fatal("want error")
+	}
+	fail = false
+	if rel, err := curseLatest("43"); err != nil || rel.ID != "3" {
+		t.Fatalf("after recovery: %+v, %v", rel, err)
+	}
+}

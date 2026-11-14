@@ -140,6 +140,8 @@ func exists(p string) bool {
 type Installer struct {
 	AddonsDir, DataDir string
 	Log                func(format string, args ...any)
+	// Download saves a release file to dst; nil means source.Download. Tests replace it.
+	Download func(url, dst string) error
 }
 
 var unsafeName = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
@@ -171,7 +173,11 @@ func (in *Installer) Install(st *state.State, a *state.Addon, rel source.Release
 	}
 	defer func() { _ = os.RemoveAll(tmp) }()
 	zipPath := filepath.Join(tmp, "addon.zip")
-	if err := source.Download(rel.URL, zipPath); err != nil {
+	download := in.Download
+	if download == nil {
+		download = source.Download
+	}
+	if err := download(rel.URL, zipPath); err != nil {
 		return fmt.Errorf("download: %w", err)
 	}
 

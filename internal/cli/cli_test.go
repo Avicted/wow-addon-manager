@@ -377,3 +377,64 @@ func TestStatusSurvivesAnUnreadableFolder(t *testing.T) {
 		t.Fatalf("log:\n%s", f.log.String())
 	}
 }
+
+func TestSearch(t *testing.T) {
+	f := newFixture(t)
+	if err := cmdSearch(f.e, f.st, nil); err == nil {
+		t.Error("search without text should be a usage error")
+	}
+
+	known := map[string]source.Project{
+		"details":  {Source: source.Curse, ID: "1", Title: "Details"},
+		"detailsx": {Source: source.Curse, ID: "2", Title: "Details Extra"},
+	}
+	f.e.bySlug = func(slug string) (source.Project, error) {
+		if p, ok := known[slug]; ok {
+			return p, nil
+		}
+		return source.Project{}, fmt.Errorf("not found")
+	}
+	f.e.forever = func() ([]source.WagoSlug, error) {
+		return []source.WagoSlug{{Slug: "detailsx", Downloads: 5}, {Slug: "details-wago", Downloads: 50}, {Slug: "other", Downloads: 99}}, nil
+	}
+	if err := cmdSearch(f.e, f.st, []string{"details"}); err != nil {
+		t.Fatal(err)
+	}
+	out := f.out.String()
+	for _, want := range []string{"Details", "Details Extra", "wam install curse:2", "details-wago", "not matched on CurseForge"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "other") {
+		t.Errorf("non-matching slug listed:\n%s", out)
+	}
+	if strings.Index(out, "details-wago") > strings.Index(out, "Details Extra") {
+		t.Errorf("results not ordered by downloads:\n%s", out)
+	}
+}
+
+func TestSearchWithoutWago(t *testing.T) {
+	f := newFixture(t)
+	f.e.bySlug = func(slug string) (source.Project, error) {
+		if slug == "details" {
+			return source.Project{Source: source.Curse, ID: "1", Title: "Details"}, nil
+		}
+		return source.Project{}, fmt.Errorf("not found")
+	}
+	f.e.forever = func() ([]source.WagoSlug, error) { return nil, fmt.Errorf("down") }
+	if err := cmdSearch(f.e, f.st, []string{"details"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(f.out.String(), "Details") || !strings.Contains(f.log.String(), "Wago addon list unavailable") {
+		t.Errorf("out:\n%s\nlog:\n%s", f.out, f.log)
+	}
+
+	f.out.Reset()
+	if err := cmdSearch(f.e, f.st, []string{"zzz"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(f.out.String(), "Nothing found") {
+		t.Errorf("out:\n%s", f.out)
+	}
+}

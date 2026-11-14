@@ -57,6 +57,8 @@ type env struct {
 	inst      *install.Installer
 	lookup    state.Lookup
 	latest    func(source.Project) (source.Release, error)
+	bySlug    func(slug string) (source.Project, error)
+	forever   func() ([]source.WagoSlug, error)
 	color     bool
 	ctx       context.Context // cancelled by Ctrl-C or SIGTERM; nil means never
 }
@@ -130,7 +132,7 @@ func Run(args []string, out, errOut io.Writer, version string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() { <-ctx.Done(); stop() }()
-	e := &env{ctx: ctx, addonsDir: dir, out: out, err: errOut, lookup: source.Resolve, latest: source.Latest, color: isTerminal(out)}
+	e := &env{ctx: ctx, addonsDir: dir, out: out, err: errOut, lookup: source.Resolve, latest: source.Latest, bySlug: source.CurseBySlug, forever: source.WagoForeverSlugs, color: isTerminal(out)}
 	e.inst = &install.Installer{AddonsDir: dir, DataDir: dataDir, Log: e.logf}
 	if err != nil {
 		e.logf("wam: AddOns directory: %v", err)
@@ -539,8 +541,8 @@ func cmdSearch(e *env, st *state.State, args []string) error {
 	// builds, whose slugs often differ from CurseForge's.
 	var exact source.Project
 	var wg sync.WaitGroup
-	wg.Go(func() { exact, _ = source.CurseBySlug(state.Slug(text)) })
-	slugs, err := source.WagoForeverSlugs()
+	wg.Go(func() { exact, _ = e.bySlug(state.Slug(text)) })
+	slugs, err := e.forever()
 	if err != nil {
 		e.logf("Wago addon list unavailable: %v", err)
 	}
@@ -556,7 +558,7 @@ func cmdSearch(e *env, st *state.State, args []string) error {
 	}
 	projects := make([]source.Project, len(hits))
 	for i, h := range hits {
-		wg.Go(func() { projects[i], _ = source.CurseBySlug(h.Slug) })
+		wg.Go(func() { projects[i], _ = e.bySlug(h.Slug) })
 	}
 	wg.Wait()
 

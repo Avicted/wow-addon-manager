@@ -12,13 +12,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Jobs prefer the self-hosted runner on the maintainer's PC (labels self-hosted, linux).
+# GitHub cannot fall back by itself when that runner is offline: set the repository variable
+# CI_RUNNER to "ubuntu-latest" (Settings > Secrets and variables > Actions > Variables) to use
+# GitHub's hosted runners instead, and delete it to go back.
+#
 # CI runs the same make target a developer runs locally; the runner only needs
 # Docker and make. `make check` is everything: Go and GUI tests, the smoke test,
 # the Linux and Windows builds, the pre-commit hooks and the release check.
 jobs:
   check:
     name: make check
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '["self-hosted", "linux"]') }}
     # Compiling eframe for Linux and Windows takes a while without a warm cache.
     timeout-minutes: 45
     steps:
@@ -29,7 +34,7 @@ jobs:
 
   commits:
     name: Conventional commits
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '["self-hosted", "linux"]') }}
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -22,7 +22,7 @@ AS_ME := --user $(shell id -u):$(shell id -g)
 TTY   := $(shell [ -t 0 ] && echo -t)
 
 .DEFAULT_GOAL := help
-.PHONY: help status update install remove search track wam image dist gui gui-run gui-dev gui-test release-check new-version undo-version release-assets release-notes smoke test check cover pre-commit hooks clean
+.PHONY: help status update install remove search track wam image dist gui gui-run gui-dev gui-test release release-check new-version undo-version release-assets release-notes smoke test check cover pre-commit hooks clean
 
 help: ## Help: list every command
 	@color=; [ -t 1 ] && [ -z "$${NO_COLOR:-}" ] && color=1; \
@@ -137,6 +137,25 @@ undo-version: ## Build: undo the last new-version
 	echo "$$old" > VERSION; rm -f $(PREV_VERSION); \
 	echo "undo-version: $(VERSION) -> $$old"
 	@$(MAKE) --no-print-directory release-check
+
+# make release BUMP=<major|minor|patch> is the one way to ship a version: new-version, then the
+# commit `chore(release): x.y.z` and the tag vx.y.z, then (after you say y) the push that starts
+# .github/workflows/release.yml. CI rejects version bumps made any other way (version-check).
+release: ## Build: ship a version (BUMP=major|minor|patch): bump, commit, tag, then push on y
+	@[ "$$(git rev-parse --abbrev-ref HEAD)" = master ] || { echo "release: switch to master first"; exit 1; }
+	@$(MAKE) --no-print-directory new-version BUMP=$(BUMP)
+	@set -e; v=$$(cat VERSION); \
+	git add VERSION CHANGELOG.md; \
+	WAM_RELEASE=1 git commit -q -m "chore(release): $$v"; \
+	git tag -a "v$$v" -m "v$$v"; \
+	echo; $(MAKE) -s --no-print-directory release-notes; echo; \
+	printf 'release: push master and v%s to origin? [y/N] ' "$$v"; \
+	read -r ans || ans=; \
+	case "$$ans" in \
+	y|Y) git push --atomic --no-follow-tags origin master "v$$v" ;; \
+	*) echo "release: not pushed. To push: git push --atomic --no-follow-tags origin master v$$v"; \
+	   echo "release: to undo:  git tag -d v$$v && git reset --hard HEAD~1" ;; \
+	esac
 
 # The names carry no version, so .../releases/latest/download/<name> always fetches the newest.
 release-assets: dist gui release-check ## Build: release binaries and SHA256SUMS in build/release

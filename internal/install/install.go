@@ -16,7 +16,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/Avicted/wow-addon-manager/internal/source"
@@ -126,7 +125,7 @@ var rename = os.Rename
 // moveDir renames, falling back to copy+delete across filesystems.
 func moveDir(src, dst string) error {
 	err := rename(src, dst)
-	if !errors.Is(err, syscall.EXDEV) {
+	if !crossDevice(err) {
 		return err
 	}
 	if err := os.CopyFS(dst, os.DirFS(src)); err != nil {
@@ -151,8 +150,11 @@ type Installer struct {
 
 var unsafeName = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
 
+// BackupsDir is where replaced and removed addons are moved.
+func (in *Installer) BackupsDir() string { return filepath.Join(in.DataDir, "backups") }
+
 func (in *Installer) backupDir(name, suffix string) string {
-	return filepath.Join(in.DataDir, "backups", unsafeName.ReplaceAllString(name, "_"), time.Now().Format("20060102-150405")+suffix)
+	return filepath.Join(in.BackupsDir(), unsafeName.ReplaceAllString(name, "_"), time.Now().Format("20060102-150405")+suffix)
 }
 
 // pruneBackups keeps only the newest backup of an addon.
@@ -314,17 +316,4 @@ func (in *Installer) Remove(name string, folders []string) (string, error) {
 	}
 	pruneBackups(backup)
 	return backup, nil
-}
-
-// WowRunning looks for a Wow.exe process (under Wine it shows up in the command line).
-// Inside a container it cannot see the host's processes and reports false.
-func WowRunning() bool {
-	procs, _ := filepath.Glob("/proc/[0-9]*/cmdline")
-	for _, p := range procs {
-		b, err := os.ReadFile(p)
-		if err == nil && strings.Contains(strings.ToLower(string(b)), "wow.exe") {
-			return true
-		}
-	}
-	return false
 }

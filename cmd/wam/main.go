@@ -10,4 +10,4 @@ import (
 // version is set at build time: -ldflags "-X main.version=$(cat VERSION)".
 var version = "dev"
 
-func main() { os.Exit(cli.Run(os.Args[1:], os.Stdout, os.Stderr, version)) }
+func main() { os.Exit(cli.Run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr, version)) }

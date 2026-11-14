@@ -3,6 +3,7 @@ package toc
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -48,6 +49,9 @@ func TestReadPicksForeverTOC(t *testing.T) {
 }
 
 func TestReadBroken(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip(`a file named A\A.toc can't exist on Windows: "\" separates directories there`)
+	}
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "AL", `A\A.toc`), "## Version: 1\n")
 	writeFile(t, filepath.Join(dir, "AL", `B\B.toc`), "## X-Curse-Project-ID: 1422985\n")

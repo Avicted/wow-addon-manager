@@ -73,9 +73,28 @@ type httpError struct {
 	Code       int
 	URL        string
 	RetryAfter time.Duration // from the Retry-After header, if the server sent one
+	RateReset  time.Time     // when GitHub's rate limit resets, if this answer means it was hit
 }
 
 func (e *httpError) Error() string { return fmt.Sprintf("HTTP %d from %s", e.Code, e.URL) }
+
+// HTTPStatus returns the status code of a non-200 answer in err's chain, or 0.
+func HTTPStatus(err error) int {
+	var he *httpError
+	if errors.As(err, &he) {
+		return he.Code
+	}
+	return 0
+}
+
+// RateLimitReset reports whether err is GitHub's rate limit, and when it resets.
+func RateLimitReset(err error) (time.Time, bool) {
+	var he *httpError
+	if errors.As(err, &he) && !he.RateReset.IsZero() {
+		return he.RateReset, true
+	}
+	return time.Time{}, false
+}
 
 func isStatus(err error, code int) bool {
 	var he *httpError
@@ -142,6 +161,11 @@ func getOnce(c *http.Client, req *http.Request) (*http.Response, error) {
 		he := &httpError{Code: resp.StatusCode, URL: req.URL.String()}
 		if secs, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil && secs > 0 {
 			he.RetryAfter = time.Duration(secs) * time.Second
+		}
+		if resp.Header.Get("X-RateLimit-Remaining") == "0" {
+			if reset, err := strconv.ParseInt(resp.Header.Get("X-RateLimit-Reset"), 10, 64); err == nil {
+				he.RateReset = time.Unix(reset, 0)
+			}
 		}
 		return nil, he
 	}

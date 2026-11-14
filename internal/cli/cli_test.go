@@ -4,7 +4,11 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +23,7 @@ import (
 func run(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
 	var out, errOut bytes.Buffer
-	code := Run(args, &out, &errOut, "1.2.3")
+	code := Run(args, nil, &out, &errOut, "1.2.3")
 	return code, out.String(), errOut.String()
 }
 
@@ -436,5 +440,174 @@ func TestSearchWithoutWago(t *testing.T) {
 	}
 	if !strings.Contains(f.out.String(), "Nothing found") {
 		t.Errorf("out:\n%s", f.out)
+	}
+}
+
+// events parses -json output, one object per line.
+func events(t *testing.T, out string) []map[string]any {
+	t.Helper()
+	var evs []map[string]any
+	for line := range strings.SplitSeq(strings.TrimSpace(out), "\n") {
+		var ev map[string]any
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
+			t.Fatalf("not JSON: %q: %v", line, err)
+		}
+		evs = append(evs, ev)
+	}
+	return evs
+}
+
+func TestJSONStatus(t *testing.T) {
+	f := newFixture(t)
+	f.e.json = true
+	f.track(t, "Questie", "1", "10", "11").Release = "10"
+	f.track(t, "Details", "2", "5", "") // no release: its check fails
+	f.folder(t, "Journalator", "171")
+	f.st.Unresolved = []string{"Journalator"}
+	if err := cmdStatus(f.e, f.st, nil); err != nil {
+		t.Fatal(err)
+	}
+	evs := events(t, f.out.String())
+	if evs[0]["event"] != "checking" || len(evs[0]["addons"].([]any)) != 2 {
+		t.Fatalf("first event %v", evs[0])
+	}
+	checked := 0
+	for _, ev := range evs[1:] {
+		if ev["event"] == "checked" {
+			checked++
+			if ev["total"] != 2.0 || ev["done"] != float64(checked) {
+				t.Errorf("checked event %v", ev)
+			}
+		}
+	}
+	if checked != 2 {
+		t.Fatalf("%d checked events in %v", checked, evs)
+	}
+	r := f.e.data.(statusReport)
+	if r.Updates != 1 || len(r.Untracked) != 1 || r.Untracked[0].Root != "Journalator" || r.BackupsDir == "" {
+		t.Fatalf("report %+v", r)
+	}
+	for _, a := range r.Addons {
+		if a.Name == "Details" && (a.Status != "error" || a.Error == nil || a.Error.Code != "other") {
+			t.Errorf("Details row %+v", a)
+		}
+	}
+}
+
+func TestJSONUpdateReportsEachAddon(t *testing.T) {
+	f := newFixture(t)
+	f.e.json = true
+	f.track(t, "Questie", "1", "10", "11").Release = "10"
+	f.track(t, "Details", "2", "5", "6").Release = "5"
+	f.track(t, "Bagnon", "3", "7", "8").Release = "7"
+	delete(f.zips, "zip://Details")
+	ctx, cancel := context.WithCancel(context.Background())
+	f.e.ctx = ctx
+	download := f.e.inst.Download
+	// Details fails to download, and Cancel arrives while it does: Bagnon is skipped.
+	f.e.inst.Download = func(url, dst string) error {
+		if url == "zip://Details" {
+			cancel()
+		}
+		return download(url, dst)
+	}
+	if err := cmdUpdate(f.e, f.st, nil); err == nil || !strings.Contains(err.Error(), "interrupted") {
+		t.Fatalf("err = %v", err)
+	}
+	states := map[string][]string{}
+	for _, ev := range events(t, f.out.String()) {
+		if ev["event"] == "item" {
+			it := ev["item"].(map[string]any)
+			states[it["name"].(string)] = append(states[it["name"].(string)], it["state"].(string))
+		}
+	}
+	want := map[string]string{"Questie": "waiting updating updated", "Details": "waiting updating failed", "Bagnon": "waiting skipped"}
+	for name, w := range want {
+		if got := strings.Join(states[name], " "); got != w {
+			t.Errorf("%s: states %q, want %q", name, got, w)
+		}
+	}
+	r := f.e.data.(*updateReport)
+	if r.Updated != 1 || r.Failed != 1 || r.Skipped != 1 || r.Items[1].Error == nil {
+		t.Fatalf("report %+v", r)
+	}
+}
+
+func TestJSONSearch(t *testing.T) {
+	f := newFixture(t)
+	f.e.json = true
+	f.e.bySlug = func(slug string) (source.Project, error) {
+		if slug == "details" {
+			return source.Project{Source: source.Curse, ID: "1", Title: "Details"}, nil
+		}
+		return source.Project{}, fmt.Errorf("not found")
+	}
+	f.e.forever = func() ([]source.WagoSlug, error) {
+		return []source.WagoSlug{{Slug: "details-wago", Downloads: 50}}, nil
+	}
+	if err := cmdSearch(f.e, f.st, []string{"details"}); err != nil {
+		t.Fatal(err)
+	}
+	r := f.e.data.(searchReport)
+	if len(r.Hits) != 2 || r.Hits[0].Downloads != nil || r.Hits[0].Ref != "curse:1" ||
+		r.Hits[1].Ref != "" || *r.Hits[1].Downloads != 50 || !strings.HasSuffix(r.Hits[1].URL, "/details-wago") {
+		t.Fatalf("report %+v", r)
+	}
+	if f.out.Len() != 0 {
+		t.Fatalf("search printed text with -json: %q", f.out)
+	}
+}
+
+func TestJSONRunErrors(t *testing.T) {
+	dir := t.TempDir()
+	data := filepath.Join(dir, "data")
+	t.Setenv("WAM_DATA_DIR", data)
+	missing := filepath.Join(dir, "missing")
+	code, out, _ := run(t, "-json", "-addons-dir", missing, "status")
+	ev := events(t, out)
+	if e := ev[0]["error"].(map[string]any); code != 1 || len(ev) != 1 || ev[0]["ok"] != false || e["code"] != "addons_dir" || e["path"] != missing {
+		t.Fatalf("missing dir: %d %v", code, ev)
+	}
+	unlock, err := state.Lock(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+	code, out, _ = run(t, "-json", "-addons-dir", dir, "status")
+	if e := events(t, out)[0]["error"].(map[string]any); code != 1 || e["code"] != "locked" {
+		t.Fatalf("locked: %d %s", code, out)
+	}
+	if _, out, _ = run(t, "-json", "version"); !strings.Contains(out, `"data":{"version":"1.2.3"}`) {
+		t.Fatalf("version: %s", out)
+	}
+}
+
+func TestWatchCancel(t *testing.T) {
+	for in, want := range map[string]bool{"noise\n cancel \n": true, "noise\n": false, "": false} {
+		called := false
+		watchCancel(strings.NewReader(in), func() { called = true })
+		if called != want {
+			t.Errorf("%q: cancelled %v, want %v", in, called, want)
+		}
+	}
+}
+
+func TestDescribe(t *testing.T) {
+	cases := map[string]error{
+		"not_found":  fmt.Errorf("no CurseForge project 1: %w", source.ErrNotFound),
+		"network":    &url.Error{Op: "Get", URL: "https://example.com", Err: errors.New("dial tcp: no route")},
+		"permission": &fs.PathError{Op: "rename", Path: "x", Err: fs.ErrPermission},
+		"locked":     fmt.Errorf("%w (it holds x)", state.ErrLocked),
+		"cancelled":  fmt.Errorf("%w: 2 addons not updated", errInterrupted),
+		"bad_ref":    badRef{fmt.Errorf("no CurseForge addon with slug %q: %w", "zz", source.ErrNotFound)},
+		"other":      errors.New("boom"),
+	}
+	for want, err := range cases {
+		if got := describe(err); got.Code != want || got.Message != err.Error() {
+			t.Errorf("%v: %+v, want code %s", err, got, want)
+		}
+	}
+	if describe(nil) != nil {
+		t.Error("describe(nil) != nil")
 	}
 }

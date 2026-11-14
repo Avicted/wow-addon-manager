@@ -3,6 +3,7 @@ package source
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -402,5 +403,24 @@ func TestLatestDispatchesBySource(t *testing.T) {
 	}
 	if _, err := Latest(Project{Source: "nope", ID: "1"}); err == nil {
 		t.Error("unknown source should be an error")
+	}
+}
+
+func TestRateLimitIsRecognised(t *testing.T) {
+	fastRetries(t)
+	reset := time.Date(2026, 11, 14, 15, 0, 0, 0, time.UTC)
+	u := serve(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Remaining", "0")
+		w.Header().Set("X-RateLimit-Reset", fmt.Sprint(reset.Unix()))
+		w.WriteHeader(http.StatusForbidden)
+	})
+	var v map[string]any
+	err := getJSON(u, &v)
+	if got, ok := RateLimitReset(err); !ok || !got.Equal(reset) || HTTPStatus(err) != 403 {
+		t.Fatalf("err %v: reset %v %v, status %d", err, got, ok, HTTPStatus(err))
+	}
+	plain := fmt.Errorf("wrapped: %w", &httpError{Code: 503})
+	if _, ok := RateLimitReset(plain); ok || HTTPStatus(plain) != 503 || HTTPStatus(errors.New("x")) != 0 {
+		t.Fatalf("plain 503 misread: %v", plain)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -42,7 +43,9 @@ func TestAdopt(t *testing.T) {
 	writeFile(t, filepath.Join(d, "Guidelime", "Guidelime-Camelot.toc"), "## Title: Guidelime\n## Version: 6\n## Dependencies: Questie\n")
 	writeFile(t, filepath.Join(d, "Journalator", "Journalator.toc"), "## Version: 171\n")
 	writeFile(t, filepath.Join(d, "Journalator_Display", "Journalator_Display.toc"), "## RequiredDeps: Auctionator, Journalator\n")
-	writeFile(t, filepath.Join(d, "Broken", `X\X.toc`), "## X-Curse-Project-ID: 9\n")
+	if runtime.GOOS != "windows" { // on Windows "\" separates directories, so nothing is broken
+		writeFile(t, filepath.Join(d, "Broken", `X\X.toc`), "## X-Curse-Project-ID: 9\n")
+	}
 
 	known := map[string]source.Project{
 		"curse:334372":   {Source: source.Curse, ID: "334372", Title: "Questie"},

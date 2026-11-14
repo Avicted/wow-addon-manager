@@ -17,9 +17,10 @@ COPY cmd/ cmd/
 COPY internal/ internal/
 
 # A failing vet or test fails every image and binary build: compile depends on this stage.
+# The Windows vet keeps the per-OS files (lock, process check, paths) compiling there.
 FROM source AS test
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    go vet ./... && go test ./... && touch /tested
+    go vet ./... && GOOS=windows go vet ./... && go test ./... && touch /tested
 
 # The race detector needs cgo, so a C toolchain; the shipped binary stays CGO-free.
 # `make test` runs this stage; image builds don't wait for it.
@@ -44,11 +45,12 @@ ARG VERSION=dev
 COPY --from=test /tested /tested
 RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -ldflags "-s -w -X main.version=${VERSION}" -o /out/wam ./cmd/wam \
+    && GOOS=windows go build -ldflags "-s -w -X main.version=${VERSION}" -o /out/wam.exe ./cmd/wam \
     && /out/wam --version
 
-# `docker build --target binary --output build/dist .` exports just the binary.
+# `docker build --target binary --output build/dist .` exports the Linux and Windows binaries.
 FROM scratch AS binary
-COPY --from=compile /out/wam /wam
+COPY --from=compile /out/wam /out/wam.exe /
 
 FROM gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
 LABEL org.opencontainers.image.source="https://github.com/Avicted/wow-addon-manager" \

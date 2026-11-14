@@ -13,7 +13,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"syscall"
 
 	"github.com/Avicted/wow-addon-manager/internal/source"
 	"github.com/Avicted/wow-addon-manager/internal/toc"
@@ -74,19 +73,21 @@ func Lock(dataDir string) (unlock func(), err error) {
 		return nil, err
 	}
 	path := filepath.Join(dataDir, "state.lock")
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o644)
-	if err != nil {
-		return nil, err
+	f, err := lockFile(path)
+	if errors.Is(err, errLocked) {
+		return nil, fmt.Errorf("%w (it holds %s)", ErrLocked, path)
 	}
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
-		_ = f.Close()
-		if errors.Is(err, syscall.EWOULDBLOCK) {
-			return nil, fmt.Errorf("another wam is running (it holds %s)", path)
-		}
+	if err != nil {
 		return nil, err
 	}
 	return func() { _ = f.Close() }, nil // closing the file drops the lock
 }
+
+// errLocked is what lockFile returns when another process holds the lock.
+var errLocked = errors.New("locked")
+
+// ErrLocked is in the chain of Lock's error when another wam holds the lock.
+var ErrLocked = errors.New("another wam is running")
 
 // Save writes the state atomically.
 func (s *State) Save() error {

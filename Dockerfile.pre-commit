@@ -27,9 +27,14 @@ COPY --from=golangci-lint /usr/bin/golangci-lint /usr/local/bin/golangci-lint
 # The repository is bind-mounted and owned by the host user, who is not the
 # container user, so git would otherwise refuse it as "dubious ownership".
 # Every tool is run once so a broken copy fails the build, not a commit.
-RUN git config --system --add safe.directory '*' \
-    && prek --version && hadolint --version && gitleaks version \
-    && golangci-lint --version
+RUN <<-EOF
+	set -e
+	git config --system --add safe.directory '*'
+	prek --version
+	hadolint --version
+	gitleaks version
+	golangci-lint --version
+EOF
 
 # The container runs as the host user, who has no home here. The Makefile
 # points every cache (prek, Go, golangci-lint) into the repository's build/.

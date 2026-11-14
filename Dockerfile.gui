@@ -14,20 +14,26 @@ WORKDIR /src
 COPY go.mod VERSION ./
 COPY cmd/ cmd/
 COPY internal/ internal/
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    ldflags="-s -w -X main.version=$(cat VERSION)" \
-    && GOOS=linux go build -ldflags "$ldflags" -o /out/linux/wam ./cmd/wam \
-    && GOOS=windows go build -ldflags "$ldflags" -o /out/windows/wam.exe ./cmd/wam
+RUN --mount=type=cache,target=/root/.cache/go-build <<-EOF
+	set -e
+	ldflags="-s -w -X main.version=$(cat VERSION)"
+	GOOS=linux go build -ldflags "$ldflags" -o /out/linux/wam ./cmd/wam
+	GOOS=windows go build -ldflags "$ldflags" -o /out/windows/wam.exe ./cmd/wam
+EOF
 
 # Debian bookworm's glibc (2.36) keeps the Linux binary running on older distributions.
 # The Windows binary is cross-compiled with MinGW.
 FROM rust:1.99-bookworm@sha256:e6f2cff35d0f309acf8433b4f05878ed77092602c5065cc81801177da0bb3a9c AS rust
 # hadolint ignore=DL3008
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64 \
-    && rm -rf /var/lib/apt/lists/* \
-    && rustup component add clippy rustfmt \
-    && rustup target add x86_64-pc-windows-gnu
+RUN <<-EOF
+	set -e
+	apt-get update
+	apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64
+	rm -rf /var/lib/apt/lists/*
+	rustup component add clippy rustfmt
+	rustup target add x86_64-pc-windows-gnu
+EOF
+
 WORKDIR /src
 COPY VERSION ./
 COPY gui/ gui/
@@ -38,20 +44,24 @@ ENV WAM_BIN=/wam/linux/wam
 # `make gui-test` runs this stage; a failure here fails `make gui` too.
 FROM rust AS test
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/src/gui/target,id=wam-gui-target \
-    cargo fmt --check \
-    && cargo clippy --locked --all-targets -- -D warnings \
-    && cargo test --locked \
-    && touch /tested
+    --mount=type=cache,target=/src/gui/target,id=wam-gui-target <<-EOF
+	set -e
+	cargo fmt --check
+	cargo clippy --locked --all-targets -- -D warnings
+	cargo test --locked
+	touch /tested
+EOF
 
 FROM rust AS build
 COPY --from=test /tested /tested
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/src/gui/target,id=wam-gui-target \
-    cargo build --locked --release --target x86_64-unknown-linux-gnu \
-    && WAM_BIN=/wam/windows/wam.exe cargo build --locked --release --target x86_64-pc-windows-gnu \
-    && mkdir /out \
-    && cp target/x86_64-unknown-linux-gnu/release/wam-gui target/x86_64-pc-windows-gnu/release/wam-gui.exe /out/
+    --mount=type=cache,target=/src/gui/target,id=wam-gui-target <<-EOF
+	set -e
+	cargo build --locked --release --target x86_64-unknown-linux-gnu
+	WAM_BIN=/wam/windows/wam.exe cargo build --locked --release --target x86_64-pc-windows-gnu
+	mkdir /out
+	cp target/x86_64-unknown-linux-gnu/release/wam-gui target/x86_64-pc-windows-gnu/release/wam-gui.exe /out/
+EOF
 
 FROM scratch AS gui
 COPY --from=build /out/ /

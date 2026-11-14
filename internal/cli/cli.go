@@ -35,7 +35,7 @@ Commands:
   install <ref>           install an addon; <ref> is a CurseForge URL, slug or
                           project id (curse:1422985), or a GitHub repo URL
   track <folder> <ref>    record where an untracked folder comes from
-  remove <name|folder>    move an addon's folders to the backup directory
+  remove <name|folder>    remove an addon, keeping a zip backup in AddOns-backups
   search <text>           find addons with Forever builds
   version                 print the version
 
@@ -45,7 +45,7 @@ Flags:
   -rescan           retry identifying folders that couldn't be matched before
 
 Environment:
-  WAM_DATA_DIR      state and backups (default ` + dataDirHint + `)
+  WAM_DATA_DIR      state (default ` + dataDirHint + `)
   GITHUB_TOKEN      raises GitHub's API rate limit
 `
 
@@ -174,7 +174,7 @@ func (e *env) run(cmd string, args []string, home, addonsDir string, rescan bool
 	}
 	dataDir := dataDir(home)
 	e.addonsDir = dir
-	e.inst = &install.Installer{AddonsDir: dir, DataDir: dataDir, Log: e.logf}
+	e.inst = &install.Installer{AddonsDir: dir, Log: e.logf}
 	if err != nil {
 		return 1, fmt.Errorf("%w: %w", errAddonsDir, err)
 	}
@@ -729,7 +729,7 @@ func cmdRemove(e *env, st *state.State, args []string) error {
 	}
 	e.data = removeReport{Name: name, Folders: folders, Backup: backup}
 	if !e.json {
-		e.printf("Removed %s; moved %s to %s", name, strings.Join(folders, ", "), backup)
+		e.printf("Removed %s (%s); backup: %s", name, strings.Join(folders, ", "), backup)
 	}
 	return st.Save()
 }

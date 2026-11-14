@@ -7,7 +7,7 @@ VERSION := $(shell cat VERSION)
 IMAGE   := wam:$(VERSION)
 LINT_IMAGE := wam-pre-commit:local
 
-# The AddOns directory wam manages, and where it keeps state and backups.
+# The AddOns directory wam manages, and where it keeps state.
 ADDONS_DIR ?= $(or $(WAM_ADDONS_DIR),$(HOME)/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns)
 DATA_DIR   ?= $(or $(WAM_DATA_DIR),$(HOME)/.local/share/wam)
 
@@ -59,7 +59,7 @@ install: $(IMAGE_STAMP) ## Addons: install REF=<curseforge-url|slug|curse:id|git
 	$(if $(REF),,$(error usage: make install REF=<curseforge-url|slug|curse:id|github-url>))
 	$(call run-wam,install '$(REF)')
 
-remove: $(IMAGE_STAMP) ## Addons: move NAME=<addon|folder> to the backups
+remove: $(IMAGE_STAMP) ## Addons: remove NAME=<addon|folder>, keeping a zip backup
 	$(if $(NAME),,$(error usage: make remove NAME=<addon|folder>))
 	$(call run-wam,remove '$(NAME)')
 
@@ -132,7 +132,7 @@ smoke: $(IMAGE_STAMP) ## Development: check the image runs and reports VERSION
 		printf '## Version: 1\n' > "$$tmp/Interface/AddOns/Foo/Foo.toc"; \
 		docker run --rm $(AS_ME) -v "$$tmp:$$tmp" -e WAM_ADDONS_DIR="$$tmp/Interface/AddOns" -e WAM_DATA_DIR="$$tmp/data" \
 			$(IMAGE) remove Foo >/dev/null; rc=$$?; \
-		[ $$rc -eq 0 ] && [ ! -e "$$tmp/Interface/AddOns/Foo" ] && [ -d "$$tmp/data/backups" ]; ok=$$?; rm -rf "$$tmp"; \
+		[ $$rc -eq 0 ] && [ ! -e "$$tmp/Interface/AddOns/Foo" ] && ls "$$tmp"/Interface/AddOns-backups/Foo/*.zip >/dev/null 2>&1; ok=$$?; rm -rf "$$tmp"; \
 		[ $$ok -eq 0 ] || { echo "smoke: remove in the container failed (exit $$rc)"; exit 1; }
 	@echo "smoke: OK"
 

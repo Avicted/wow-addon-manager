@@ -1,5 +1,5 @@
 // Package install swaps addon releases into the AddOns directory: download, safe unzip,
-// backup of what is replaced, and rollback on failure.
+// a zip backup of what is replaced, and rollback on failure.
 package install
 
 import (
@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -116,55 +117,105 @@ func extractFile(f *zip.File, target string) error {
 	return err
 }
 
-// move is moveDir; tests replace it to simulate failures.
-var move = moveDir
-
-// rename is os.Rename; tests replace it to simulate a cross-device move.
-var rename = os.Rename
-
-// moveDir renames, falling back to copy+delete across filesystems.
-func moveDir(src, dst string) error {
-	err := rename(src, dst)
-	if !crossDevice(err) {
-		return err
-	}
-	if err := os.CopyFS(dst, os.DirFS(src)); err != nil {
-		_ = os.RemoveAll(dst)
-		return err
-	}
-	return os.RemoveAll(src)
-}
+// move is os.Rename; tests replace it to simulate failures. Everything wam moves lives inside
+// the game's Interface folder (AddOns and its staging directories), so a rename always works.
+var move = os.Rename
 
 func exists(p string) bool {
 	_, err := os.Lstat(p)
 	return err == nil
 }
 
-// Installer changes one AddOns directory. Backups go under DataDir/backups.
+// Installer changes one AddOns directory. Backups are zip files in AddOns-backups beside it.
 type Installer struct {
-	AddonsDir, DataDir string
-	Log                func(format string, args ...any)
+	AddonsDir string
+	Log       func(format string, args ...any)
 	// Download saves a release file to dst; nil means source.Download. Tests replace it.
 	Download func(url, dst string) error
 }
 
 var unsafeName = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
 
-// BackupsDir is where replaced and removed addons are moved.
-func (in *Installer) BackupsDir() string { return filepath.Join(in.DataDir, "backups") }
-
-func (in *Installer) backupDir(name, suffix string) string {
-	return filepath.Join(in.BackupsDir(), unsafeName.ReplaceAllString(name, "_"), time.Now().Format("20060102-150405")+suffix)
+// BackupsDir is where replaced and removed addons are saved as zip files: Interface/AddOns-backups.
+func (in *Installer) BackupsDir() string {
+	return filepath.Join(filepath.Dir(in.AddonsDir), "AddOns-backups")
 }
 
-// pruneBackups keeps only the newest backup of an addon.
-func pruneBackups(dir string) {
-	entries, err := os.ReadDir(filepath.Dir(dir))
+func (in *Installer) backupFile(name, suffix string) string {
+	return filepath.Join(in.BackupsDir(), unsafeName.ReplaceAllString(name, "_"), time.Now().Format("20060102-150405")+suffix+".zip")
+}
+
+// zipFolders writes the given folders of addonsDir to a zip at dst, each under its own name at
+// the top level, so unzipping the file into AddOns puts them back. It goes through dst+".tmp"
+// so an interrupted run never leaves a half-written backup under the real name.
+func zipFolders(dst, addonsDir string, folders []string) (err error) {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+	tmp := dst + ".tmp"
+	out, err := os.Create(tmp)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = out.Close()
+			_ = os.Remove(tmp)
+		}
+	}()
+	zw := zip.NewWriter(out)
+	for _, f := range folders {
+		root := filepath.Join(addonsDir, f)
+		err = filepath.WalkDir(root, func(p string, d fs.DirEntry, werr error) error {
+			if werr != nil || d.IsDir() || !d.Type().IsRegular() {
+				return werr
+			}
+			rel, rerr := filepath.Rel(addonsDir, p)
+			if rerr != nil {
+				return rerr
+			}
+			info, ierr := d.Info()
+			if ierr != nil {
+				return ierr
+			}
+			h, herr := zip.FileInfoHeader(info)
+			if herr != nil {
+				return herr
+			}
+			h.Name, h.Method = filepath.ToSlash(rel), zip.Deflate
+			w, cerr := zw.CreateHeader(h)
+			if cerr != nil {
+				return cerr
+			}
+			src, oerr := os.Open(p)
+			if oerr != nil {
+				return oerr
+			}
+			defer func() { _ = src.Close() }()
+			_, cerr = io.Copy(w, src)
+			return cerr
+		})
+		if err != nil {
+			return err
+		}
+	}
+	if err = zw.Close(); err != nil {
+		return err
+	}
+	if err = out.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp, dst)
+}
+
+// pruneBackups keeps only the newest backup of an addon: the file keep.
+func pruneBackups(keep string) {
+	entries, err := os.ReadDir(filepath.Dir(keep))
 	if err != nil {
 		return
 	}
 	for _, e := range entries {
-		if p := filepath.Join(filepath.Dir(dir), e.Name()); p != dir {
+		if p := filepath.Join(filepath.Dir(keep), e.Name()); p != keep {
 			_ = os.RemoveAll(p)
 		}
 	}
@@ -247,28 +298,44 @@ func (in *Installer) Install(st *state.State, a *state.Addon, rel source.Release
 		}
 	}
 
-	backup := in.backupDir(a.Name, "")
+	var replaced []string
+	for _, f := range folders {
+		if exists(filepath.Join(in.AddonsDir, f)) {
+			replaced = append(replaced, f)
+		}
+	}
+	// Save what is about to be replaced before touching anything: if this fails, nothing changed.
+	backup := ""
+	if len(replaced) > 0 {
+		backup = in.backupFile(a.Name, "")
+		if err := zipFolders(backup, in.AddonsDir, replaced); err != nil {
+			return fmt.Errorf("backup: %w", err)
+		}
+	}
+	// The old folders wait in a second staging directory so a failure can put them back.
+	parked, err := os.MkdirTemp(filepath.Dir(in.AddonsDir), stagingPrefix)
+	if err != nil {
+		_ = os.Remove(backup)
+		return err
+	}
+	defer func() { _ = os.RemoveAll(parked) }()
 	var movedOld, movedNew []string
 	rollback := func(cause error) error {
 		for _, f := range movedNew {
 			_ = os.RemoveAll(filepath.Join(in.AddonsDir, f))
 		}
 		for _, f := range movedOld {
-			if err := move(filepath.Join(backup, f), filepath.Join(in.AddonsDir, f)); err != nil {
-				return fmt.Errorf("%w; restoring %s from %s also failed: %w", cause, f, backup, err)
+			if err := move(filepath.Join(parked, f), filepath.Join(in.AddonsDir, f)); err != nil {
+				return fmt.Errorf("%w; restoring %s also failed: %w (a copy is in %s)", cause, f, err, backup)
 			}
+		}
+		if backup != "" {
+			_ = os.Remove(backup)
 		}
 		return cause
 	}
-	for _, f := range folders {
-		live := filepath.Join(in.AddonsDir, f)
-		if !exists(live) {
-			continue
-		}
-		if err := os.MkdirAll(backup, 0o755); err != nil {
-			return rollback(err)
-		}
-		if err := move(live, filepath.Join(backup, f)); err != nil {
+	for _, f := range replaced {
+		if err := move(filepath.Join(in.AddonsDir, f), filepath.Join(parked, f)); err != nil {
 			return rollback(err)
 		}
 		movedOld = append(movedOld, f)
@@ -279,7 +346,7 @@ func (in *Installer) Install(st *state.State, a *state.Addon, rel source.Release
 		}
 		movedNew = append(movedNew, f)
 	}
-	if len(movedOld) > 0 {
+	if backup != "" {
 		pruneBackups(backup)
 	}
 
@@ -299,20 +366,38 @@ func (in *Installer) Install(st *state.State, a *state.Addon, rel source.Release
 	return nil
 }
 
-// Remove moves folders out of AddOns into a backup and returns where they went.
+// Remove saves folders as a zip in the backups directory, then takes them out of AddOns. It
+// returns the zip's path, or "" when none of the folders existed.
 func (in *Installer) Remove(name string, folders []string) (string, error) {
-	backup := in.backupDir(name, "-removed")
-	if err := os.MkdirAll(backup, 0o755); err != nil {
+	var present []string
+	for _, f := range folders {
+		if exists(filepath.Join(in.AddonsDir, f)) {
+			present = append(present, f)
+		}
+	}
+	if len(present) == 0 {
+		return "", nil
+	}
+	backup := in.backupFile(name, "-removed")
+	if err := zipFolders(backup, in.AddonsDir, present); err != nil {
+		return "", fmt.Errorf("backup: %w", err)
+	}
+	parked, err := os.MkdirTemp(filepath.Dir(in.AddonsDir), stagingPrefix)
+	if err != nil {
+		_ = os.Remove(backup)
 		return "", err
 	}
-	for _, f := range folders {
-		live := filepath.Join(in.AddonsDir, f)
-		if !exists(live) {
-			continue
+	defer func() { _ = os.RemoveAll(parked) }()
+	var moved []string
+	for _, f := range present {
+		if err := move(filepath.Join(in.AddonsDir, f), filepath.Join(parked, f)); err != nil {
+			for _, m := range moved {
+				_ = move(filepath.Join(parked, m), filepath.Join(in.AddonsDir, m))
+			}
+			_ = os.Remove(backup)
+			return "", err
 		}
-		if err := move(live, filepath.Join(backup, f)); err != nil {
-			return backup, err
-		}
+		moved = append(moved, f)
 	}
 	pruneBackups(backup)
 	return backup, nil

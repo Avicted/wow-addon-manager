@@ -6,13 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -70,7 +70,7 @@ func version(t *testing.T, dir, folder string) string {
 
 func newInstaller(t *testing.T) *Installer {
 	root := t.TempDir()
-	in := &Installer{AddonsDir: filepath.Join(root, "Interface", "AddOns"), DataDir: filepath.Join(root, "data"), Log: t.Logf}
+	in := &Installer{AddonsDir: filepath.Join(root, "Interface", "AddOns"), Log: t.Logf}
 	if err := os.MkdirAll(in.AddonsDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -138,9 +138,12 @@ func TestInstallSwapsAndBacksUp(t *testing.T) {
 	if !exists(filepath.Join(in.AddonsDir, "Other")) {
 		t.Fatal("unrelated folder touched")
 	}
-	backups, _ := filepath.Glob(filepath.Join(in.DataDir, "backups", "Foo", "*", "Foo", "stale.lua"))
-	if len(backups) != 1 {
-		t.Fatalf("backup missing: %v", backups)
+	backups, _ := filepath.Glob(filepath.Join(in.BackupsDir(), "Foo", "*.zip"))
+	if len(backups) != 1 || !strings.HasSuffix(filepath.Dir(in.BackupsDir()), "Interface") {
+		t.Fatalf("want one zip in AddOns-backups beside AddOns: %v", backups)
+	}
+	if got := zipContents(t, backups[0]); got["Foo/stale.lua"] != "old" || got["Foo/Foo.toc"] != "## Version: 1\n" || len(got) != 2 {
+		t.Fatalf("backup zip holds %v", got)
 	}
 	if a.Release != "7" || !slices.Equal(a.Folders, []string{"Foo", "Foo_Ext"}) {
 		t.Fatalf("state not updated: %+v", a)
@@ -209,9 +212,9 @@ func TestInstallRollsBackOnFailure(t *testing.T) {
 		if moves == 4 {
 			return fmt.Errorf("disk full")
 		}
-		return moveDir(src, dst)
+		return os.Rename(src, dst)
 	}
-	t.Cleanup(func() { move = moveDir })
+	t.Cleanup(func() { move = os.Rename })
 
 	a := &state.Addon{Name: "Foo", Source: source.Curse, Project: "42", Version: "1", Folders: []string{"Foo", "Foo_Ext"}}
 	st := &state.State{AddonsDir: in.AddonsDir, Addons: []*state.Addon{a}}
@@ -227,14 +230,91 @@ func TestInstallRollsBackOnFailure(t *testing.T) {
 	if a.Release != "" || a.Version != "1" {
 		t.Errorf("state changed after failed install: %+v", a)
 	}
+	if zips, _ := filepath.Glob(filepath.Join(in.BackupsDir(), "Foo", "*")); len(zips) != 0 {
+		t.Errorf("a failed install left a backup behind: %v", zips)
+	}
+	if leftovers, _ := filepath.Glob(filepath.Join(filepath.Dir(in.AddonsDir), stagingPrefix+"*")); len(leftovers) != 0 {
+		t.Errorf("staging left behind: %v", leftovers)
+	}
 }
 
-func TestRemoveMovesToBackup(t *testing.T) {
+func TestInstallChangesNothingWhenTheBackupFails(t *testing.T) {
+	in := newInstaller(t)
+	writeFile(t, filepath.Join(in.AddonsDir, "Foo", "Foo.toc"), "## Version: 1\n")
+	writeFile(t, in.BackupsDir(), "a file where the backups directory should be")
+	rel := release(t, "7", map[string]string{"Foo/Foo.toc": "## Version: 2\n"})
+	a := &state.Addon{Name: "Foo", Source: source.Curse, Project: "42", Version: "1", Folders: []string{"Foo"}}
+	st := &state.State{AddonsDir: in.AddonsDir, Addons: []*state.Addon{a}}
+	err := in.Install(st, a, rel, false)
+	if err == nil || !strings.Contains(err.Error(), "backup") {
+		t.Fatalf("err = %v", err)
+	}
+	if v := version(t, in.AddonsDir, "Foo"); v != "1" {
+		t.Errorf("Foo has version %q, want 1 untouched", v)
+	}
+}
+
+func TestOnlyTheNewestBackupIsKept(t *testing.T) {
+	in := newInstaller(t)
+	writeFile(t, filepath.Join(in.AddonsDir, "Foo", "Foo.toc"), "## Version: 1\n")
+	old := filepath.Join(in.BackupsDir(), "Foo", "20000101-000000.zip")
+	writeFile(t, old, "older backup")
+	rel := release(t, "7", map[string]string{"Foo/Foo.toc": "## Version: 2\n"})
+	a := &state.Addon{Name: "Foo", Source: source.Curse, Project: "42", Version: "1", Folders: []string{"Foo"}}
+	st := &state.State{AddonsDir: in.AddonsDir, Addons: []*state.Addon{a}}
+	if err := in.Install(st, a, rel, false); err != nil {
+		t.Fatal(err)
+	}
+	if zips, _ := filepath.Glob(filepath.Join(in.BackupsDir(), "Foo", "*")); len(zips) != 1 || exists(old) {
+		t.Fatalf("want only the new zip: %v", zips)
+	}
+}
+
+// zipContents maps each file in a zip to its text.
+func zipContents(t *testing.T, path string) map[string]string {
+	t.Helper()
+	zr, err := zip.OpenReader(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = zr.Close() }()
+	out := map[string]string{}
+	for _, f := range zr.File {
+		rc, err := f.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := io.ReadAll(rc)
+		_ = rc.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		out[f.Name] = string(b)
+	}
+	return out
+}
+
+func TestRemoveSavesAZipAndTakesTheFoldersOut(t *testing.T) {
 	in := newInstaller(t)
 	writeFile(t, filepath.Join(in.AddonsDir, "Foo", "Foo.toc"), "x")
+	writeFile(t, filepath.Join(in.AddonsDir, "Foo", "libs", "l.lua"), "lib")
 	backup, err := in.Remove("Foo", []string{"Foo", "Missing"})
-	if err != nil || exists(filepath.Join(in.AddonsDir, "Foo")) || !exists(filepath.Join(backup, "Foo", "Foo.toc")) {
+	if err != nil || exists(filepath.Join(in.AddonsDir, "Foo")) || !strings.HasSuffix(backup, "-removed.zip") {
 		t.Fatalf("backup %s, err %v", backup, err)
+	}
+	if got := zipContents(t, backup); got["Foo/Foo.toc"] != "x" || got["Foo/libs/l.lua"] != "lib" || len(got) != 2 {
+		t.Fatalf("backup zip holds %v", got)
+	}
+	// The zip restores the addon through the same unzip wam uses for downloads.
+	back := t.TempDir()
+	if folders, err := ExtractZip(backup, back); err != nil || !slices.Equal(folders, []string{"Foo"}) {
+		t.Fatalf("restore: %v, %v", folders, err)
+	}
+	if none, err := in.Remove("Foo", []string{"Foo"}); err != nil || none != "" {
+		t.Fatalf("removing what is already gone: %q, %v", none, err)
+	}
+	if leftovers, _ := filepath.Glob(filepath.Join(filepath.Dir(in.AddonsDir), stagingPrefix+"*")); len(leftovers) != 0 {
+		t.Errorf("staging left behind: %v", leftovers)
 	}
 }
 
@@ -327,29 +407,5 @@ func TestInstallChecksTheReleaseDigest(t *testing.T) {
 				t.Fatalf("Foo has version %q, want %q", v, wantVersion)
 			}
 		})
-	}
-}
-
-func TestMoveDirCopiesAcrossFilesystems(t *testing.T) {
-	old := rename
-	rename = func(string, string) error { return &os.LinkError{Op: "rename", Err: syscall.EXDEV} }
-	t.Cleanup(func() { rename = old })
-
-	root := t.TempDir()
-	src, dst := filepath.Join(root, "src"), filepath.Join(root, "dst")
-	if err := os.MkdirAll(filepath.Join(src, "sub"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(src, "sub", "a.lua"), []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := moveDir(src, dst); err != nil {
-		t.Fatal(err)
-	}
-	if b, err := os.ReadFile(filepath.Join(dst, "sub", "a.lua")); err != nil || string(b) != "x" {
-		t.Errorf("copy missing: %q, %v", b, err)
-	}
-	if exists(src) {
-		t.Error("source should be removed after the copy")
 	}
 }

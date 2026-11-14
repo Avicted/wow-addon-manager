@@ -74,8 +74,11 @@ comparison is by release id.
    on Linux otherwise give files named `Sub\file.lua`, which the game can't
    load); absolute paths and `..` are refused; a single wrapper directory
    around the addon folders is stripped; over 2 GiB unpacked is refused.
-3. Move each existing folder of the same name to the backup, then move the new
-   ones in. Any failure moves the new ones out and the old ones back.
+3. Zip each existing folder of the same name into `Interface/AddOns-backups/<addon>/<time>.zip`
+   (a failure here stops the install with nothing changed). Then rename the old folders into a
+   second staging directory and the new ones into AddOns. Any failure moves the new ones out,
+   the old ones back and deletes the zip; on success the staging directories are deleted and
+   only the newest zip is kept.
 4. Folders another addon owns: `update` refuses (two addons would keep
    overwriting each other); an explicit `install` takes them over, which is how
    an addon switches source (`install github:Questie/Questie`).
@@ -122,12 +125,11 @@ The core is stdlib-only Go and builds for Windows; the three OS-specific parts l
 `_unix.go` / `_windows.go` files:
 
 - **Lock**: `state.Lock` (see above). A second wam gets `ErrLocked` on both systems.
-- **Cross-drive moves**: `install.moveDir` renames, and copies then deletes when the rename
-  crosses filesystems (`EXDEV` on Unix, `ERROR_NOT_SAME_DEVICE` on Windows). AddOns on `D:` with
-  backups on `C:` is common there.
+- **Same-drive moves**: staging directories and backups live in `Interface/` beside AddOns, so
+  every move is a rename on one filesystem, wherever the game is installed.
 - **WoW running**: `install.WowRunning` scans `/proc` on Linux and a ToolHelp snapshot on Windows.
 - **Default paths**: AddOns is `C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns`;
-  state and backups are in `%LOCALAPPDATA%\wam`. `WAM_ADDONS_DIR` and `WAM_DATA_DIR` win everywhere.
+  state is in `%LOCALAPPDATA%\wam`; backups are in `Interface\AddOns-backups`. `WAM_ADDONS_DIR` and `WAM_DATA_DIR` win everywhere.
 - Windows refuses to move folders that have open files, so updating while the game runs can fail
   there; the rollback restores the old folders and wam warns before it starts.
 

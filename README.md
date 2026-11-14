@@ -39,8 +39,9 @@ On the first run it looks for your AddOns folder here, and asks you to pick it i
 - Windows: `C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns`
 - Linux (Battle.net under Wine): `~/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns`
 
-Replaced and removed addons are moved to a backups folder, never deleted: `%LOCALAPPDATA%\wam\backups`
-on Windows, `~/.local/share/wam/backups` on Linux. Your settings in `WTF/` are never touched.
+Before wam replaces or removes an addon it saves it as a zip in `Interface/AddOns-backups/<addon>/`,
+next to `AddOns`, and keeps the newest one. To put an addon back, unzip that file into `AddOns`.
+Your settings in `WTF/` are never touched.
 
 ## Command line
 
@@ -65,7 +66,7 @@ Not tracked (wam doesn't know where these come from):
 | `wam install <ref>` | Install a new addon |
 | `wam search <text>` | Find addons that have Forever builds |
 | `wam track <folder> <ref>` | Tell wam where an untracked folder comes from |
-| `wam remove <addon>` | Move an addon's folders to the backups |
+| `wam remove <addon>` | Remove an addon, keeping a zip backup |
 
 `<ref>` is a CurseForge URL, slug (`details`) or project id (`curse:61284`), or a GitHub
 repository (`github:Questie/Questie`). `wam -addons-dir <path> ...` sets the AddOns folder
@@ -98,7 +99,7 @@ Run `make` for the full list.
 | `make install REF=<ref>` | Install a new addon |
 | `make search Q=<text>` | Find addons that have Forever builds |
 | `make track FOLDER=<folder> REF=<ref>` | Tell wam where an untracked folder comes from |
-| `make remove NAME=<addon>` | Move an addon's folders to the backups |
+| `make remove NAME=<addon>` | Remove an addon, keeping a zip backup |
 
 `<ref>` is a CurseForge URL, slug (`details`) or project id (`curse:61284`), or
 a GitHub repository (`github:Questie/Questie`).
@@ -108,7 +109,8 @@ a GitHub repository (`github:Questie/Questie`).
 - Rows marked `~` were installed before wam; they're compared by `.toc`
   version until wam updates them once.
 - Folders under "Not tracked" need `make track` so wam can update them.
-- Backups live in the folder named above; override it with `WAM_DATA_DIR`.
+- Backups are zips in `Interface/AddOns-backups`, beside the AddOns folder. `WAM_DATA_DIR` moves
+  wam's state, not the backups.
 - Set `GITHUB_TOKEN` to raise GitHub's 60 requests an hour limit.
 - Output is colored on a terminal; set `NO_COLOR=1` to turn it off.
 

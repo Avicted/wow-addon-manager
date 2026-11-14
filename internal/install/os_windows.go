@@ -1,21 +1,10 @@
 package install
 
 import (
-	"errors"
 	"strings"
 	"syscall"
 	"unsafe"
 )
-
-// errorNotSameDevice is ERROR_NOT_SAME_DEVICE: a rename across drives (AddOns on D:,
-// backups on C:).
-const errorNotSameDevice syscall.Errno = 17
-
-// crossDevice reports whether a rename failed because src and dst are on different drives.
-// EXDEV is accepted too, so the tests' simulated cross-device error works here as well.
-func crossDevice(err error) bool {
-	return errors.Is(err, errorNotSameDevice) || errors.Is(err, syscall.EXDEV)
-}
 
 // WowRunning looks for a Wow.exe process.
 func WowRunning() bool {

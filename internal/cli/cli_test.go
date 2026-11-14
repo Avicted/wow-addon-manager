@@ -64,7 +64,7 @@ func TestTrackAndRemove(t *testing.T) {
 		lookup: func(string) (source.Project, error) {
 			return source.Project{Source: source.Curse, ID: "453921", Title: "Journalator"}, nil
 		}}
-	e.inst = &install.Installer{AddonsDir: addons, DataDir: filepath.Join(root, "data"), Log: e.logf}
+	e.inst = &install.Installer{AddonsDir: addons, Log: e.logf}
 	st, err := state.Load(filepath.Join(root, "data", "state.json"), addons)
 	if err != nil {
 		t.Fatal(err)
@@ -93,6 +93,7 @@ type fixture struct {
 	st       *state.State
 	out, log *bytes.Buffer
 	addons   string
+	root     string
 	releases map[string]source.Release
 	zips     map[string]map[string]string
 	projects map[string]source.Project
@@ -102,7 +103,7 @@ func newFixture(t *testing.T) *fixture {
 	t.Helper()
 	root := t.TempDir()
 	f := &fixture{
-		out: &bytes.Buffer{}, log: &bytes.Buffer{}, addons: filepath.Join(root, "Interface", "AddOns"),
+		out: &bytes.Buffer{}, log: &bytes.Buffer{}, root: root, addons: filepath.Join(root, "Interface", "AddOns"),
 		releases: map[string]source.Release{}, zips: map[string]map[string]string{}, projects: map[string]source.Project{},
 	}
 	if err := os.MkdirAll(f.addons, 0o755); err != nil {
@@ -121,7 +122,7 @@ func newFixture(t *testing.T) *fixture {
 		}
 		return source.Release{}, fmt.Errorf("no release for %s", p.Ref())
 	}
-	f.e.inst = &install.Installer{AddonsDir: f.addons, DataDir: filepath.Join(root, "data"), Log: f.e.logf,
+	f.e.inst = &install.Installer{AddonsDir: f.addons, Log: f.e.logf,
 		Download: func(url, dst string) error {
 			files, ok := f.zips[url]
 			if !ok {
@@ -249,7 +250,7 @@ func TestUpdateInstallsAndSaves(t *testing.T) {
 	if v := f.version(t, "Questie"); v != "11" || a.Release != "11" {
 		t.Fatalf("not updated: toc %q, release %q", v, a.Release)
 	}
-	saved, err := state.Load(filepath.Join(filepath.Dir(f.e.inst.DataDir), "data", "state.json"), f.addons)
+	saved, err := state.Load(filepath.Join(f.root, "data", "state.json"), f.addons)
 	if err != nil || saved.Find("Questie") == nil || saved.Find("Questie").Release != "11" {
 		t.Fatalf("state not saved: %+v, %v", saved, err)
 	}

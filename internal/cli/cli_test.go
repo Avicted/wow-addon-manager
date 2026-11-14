@@ -3,6 +3,7 @@ package cli
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -318,5 +319,27 @@ func TestInstallFailureLeavesNoEntry(t *testing.T) {
 	}
 	if f.st.Find("Details") != nil || len(f.st.Addons) != 0 {
 		t.Fatalf("state after failed install: %+v", f.st.Addons)
+	}
+}
+
+func TestUpdateStopsWhenInterrupted(t *testing.T) {
+	f := newFixture(t)
+	f.track(t, "Questie", "1", "10", "11").Release = "10"
+	f.track(t, "Details", "2", "5", "6").Release = "5"
+	ctx, cancel := context.WithCancel(context.Background())
+	f.e.ctx = ctx
+	download := f.e.inst.Download
+	// Ctrl-C arrives while the first addon downloads: it finishes, the second is skipped.
+	f.e.inst.Download = func(url, dst string) error { cancel(); return download(url, dst) }
+
+	err := cmdUpdate(f.e, f.st, nil)
+	if err == nil || !strings.Contains(err.Error(), "interrupted: 1 addon not updated") {
+		t.Fatalf("err = %v", err)
+	}
+	if f.version(t, "Questie") != "11" || f.version(t, "Details") != "5" {
+		t.Fatalf("Questie %q, Details %q", f.version(t, "Questie"), f.version(t, "Details"))
+	}
+	if out := f.out.String(); !strings.Contains(out, "Updated 1 addon, 1 skipped.") {
+		t.Fatalf("output:\n%s", out)
 	}
 }

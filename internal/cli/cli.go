@@ -2,16 +2,20 @@
 package cli
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"text/tabwriter"
+	"time"
 
 	"github.com/Avicted/wow-addon-manager/internal/install"
 	"github.com/Avicted/wow-addon-manager/internal/source"
@@ -54,7 +58,11 @@ type env struct {
 	lookup    state.Lookup
 	latest    func(source.Project) (source.Release, error)
 	color     bool
+	ctx       context.Context // cancelled by Ctrl-C or SIGTERM; nil means never
 }
+
+// interrupted reports whether the user asked wam to stop.
+func (e *env) interrupted() bool { return e.ctx != nil && e.ctx.Err() != nil }
 
 // paint wraps s in an ANSI color when the output is a terminal.
 func (e *env) paint(code, s string) string {
@@ -117,11 +125,19 @@ func Run(args []string, out, errOut io.Writer, version string) int {
 		_, err = os.Stat(dir)
 	}
 	dataDir := dataDir(home)
-	e := &env{addonsDir: dir, out: out, err: errOut, lookup: source.Resolve, latest: source.Latest, color: isTerminal(out)}
+	// The first Ctrl-C lets the addon being installed finish, so AddOns is never left half
+	// swapped; a second one, with the default handling restored, ends wam at once.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	go func() { <-ctx.Done(); stop() }()
+	e := &env{ctx: ctx, addonsDir: dir, out: out, err: errOut, lookup: source.Resolve, latest: source.Latest, color: isTerminal(out)}
 	e.inst = &install.Installer{AddonsDir: dir, DataDir: dataDir, Log: e.logf}
 	if err != nil {
 		e.logf("wam: AddOns directory: %v", err)
 		return 1
+	}
+	if cmd == "update" || cmd == "install" {
+		install.CleanStaging(dir, time.Hour)
 	}
 	st, err := state.Load(filepath.Join(dataDir, "state.json"), dir)
 	if err != nil {
@@ -355,8 +371,12 @@ func cmdUpdate(e *env, st *state.State, args []string) error {
 		e.logf("warning: WoW is running; updated addons load after /reload or a restart")
 	}
 	tw := tabwriter.NewWriter(e.out, 0, 0, 2, ' ', 0)
-	updated := 0
-	for _, a := range todo {
+	updated, skipped := 0, 0
+	for i, a := range todo {
+		if !dry && e.interrupted() {
+			skipped = len(todo) - i
+			break
+		}
 		rel := checks[a].rel
 		status := e.paint("33", "would update")
 		if !dry {
@@ -383,7 +403,13 @@ func cmdUpdate(e *env, st *state.State, args []string) error {
 		if failed > 0 {
 			msg += fmt.Sprintf(", %d failed", failed)
 		}
+		if skipped > 0 {
+			msg += fmt.Sprintf(", %d skipped", skipped)
+		}
 		e.printf("\n%s.", msg)
+	}
+	if skipped > 0 {
+		return fmt.Errorf("interrupted: %s not updated", plural(skipped, "addon"))
 	}
 	return failedErr(failed)
 }

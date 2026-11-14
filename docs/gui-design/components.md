@@ -11,13 +11,14 @@ Height 30, padding 0 12, radius 4, 1 px border, Inter 13/500, icon 16 + gap 6.
 | Variant | default | hover | pressed | busy |
 |---|---|---|---|---|
 | Primary (Update all, Track, Choose folder) | fill `accent_fill`, text #FFF | `primary_hover` | `primary_pressed` | spinner replaces icon, label "Updating…" |
-| Secondary (Refresh, Browse, Cancel) | fill `control`, border `control_border`, text `text` | `secondary_hover` | `secondary_pressed` | spinner, 0.8 opacity |
+| Success (Refresh, Try again on the Addons tab) | fill `success_fill`, text #FFF | `success_hover` | `success_pressed` | spinner replaces icon |
+| Secondary (Browse, Cancel, Try again on the Find tab) | fill `control`, border `control_border`, text `text` | `secondary_hover` | `secondary_pressed` | spinner, 0.8 opacity |
 | Ghost (Activity toggle) | transparent, text `text_secondary` | `control` | `secondary_pressed` | — |
 | Danger (Remove in dialog only) | fill `danger_fill`, text #FFF | `danger_hover` | `danger_pressed` | — |
 | Small (row Update, Track…, Fix) | as Secondary, height 26, padding 0 10, 12/500 | | | |
 | Icon (row Remove) | 26×26, transparent, icon `muted_text` | fill `control`, icon `text` | | |
 
-One primary button per view.
+One primary button per view. Success is the only other filled button next to it.
 
 ## Table row
 

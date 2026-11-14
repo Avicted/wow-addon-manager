@@ -10,6 +10,8 @@ use crate::theme::{self, Icon, Tint, Weight, font};
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     Primary,
+    /// Refresh / Try again: a green button for the safe, repeatable action.
+    Success,
     Secondary,
     Danger,
     /// Row actions: Update, Track…, Fix.
@@ -118,6 +120,16 @@ impl Widget for Button<'_> {
                     );
                     (f, f, white)
                 }
+                Kind::Success => {
+                    let f = pick(
+                        pressed,
+                        hovered,
+                        theme::SUCCESS_FILL,
+                        theme::SUCCESS_HOVER,
+                        theme::SUCCESS_PRESSED,
+                    );
+                    (f, f, white)
+                }
                 Kind::Danger => {
                     let f = pick(
                         pressed,
@@ -164,7 +176,7 @@ impl Widget for Button<'_> {
             };
             let opacity = match (self.enabled, self.busy) {
                 (false, _) => theme::DISABLED_OPACITY,
-                (true, true) if self.kind != Kind::Primary => 0.8,
+                (true, true) if !matches!(self.kind, Kind::Primary | Kind::Success) => 0.8,
                 _ => 1.0,
             };
             let [fill, border, text] = [fill, border, text].map(|c| c.gamma_multiply(opacity));

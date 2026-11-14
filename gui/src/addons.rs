@@ -136,7 +136,7 @@ fn toolbar(app: &mut App, ui: &mut Ui) {
             };
             if ui
                 .add(
-                    Button::new(Kind::Secondary, label)
+                    Button::new(Kind::Success, label)
                         .icon(Icon::Refresh)
                         .enabled(!app.busy()),
                 )

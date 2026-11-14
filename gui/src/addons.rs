@@ -748,7 +748,7 @@ pub fn dialogs(app: &mut App, ctx: &egui::Context) {
             Dialog::Remove { name, folders } => {
                 ui.label(text(format!("Remove {name}?"), 15.0, Weight::SemiBold, theme::TEXT));
                 ui.add(egui::Label::new(text(
-                    "These folders are moved to the backups folder. Nothing is deleted, so you can put them back later.",
+                    "These folders are saved as a zip in the backups folder first, so you can put them back later.",
                     13.0, Weight::Regular, theme::TEXT_SECONDARY)).wrap());
                 folder_list(ui, folders);
                 ui.vertical(|ui| {

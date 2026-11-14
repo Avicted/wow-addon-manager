@@ -178,7 +178,7 @@ fn backups(app: &mut App, ui: &mut Ui) {
     ui.label(text("Backups", 14.0, Weight::SemiBold, theme::TEXT));
     paragraph(
         ui,
-        "Removed and replaced addons are moved here, never deleted.",
+        "Before an addon is removed or replaced, wam saves it here as a zip, so you can always put it back.",
     );
     let dir = app.backups_dir();
     ui.horizontal(|ui| {

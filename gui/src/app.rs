@@ -1,7 +1,10 @@
 //! What the app knows and how wam's events change it. Drawing is in addons.rs, find.rs and
 //! settings.rs; this file has no layout so it can be tested without a window.
 
-use std::{collections::VecDeque, path::PathBuf};
+use std::{
+    collections::VecDeque,
+    path::{Path, PathBuf},
+};
 
 use chrono::Local;
 use eframe::egui;
@@ -282,7 +285,12 @@ impl App {
         self.status
             .as_ref()
             .map(|s| s.backups_dir.clone())
-            .unwrap_or_else(|| wam::data_dir().join("backups").display().to_string())
+            .or_else(|| {
+                let dir = self.settings.addons_dir.as_deref()?;
+                let parent = Path::new(dir).parent()?;
+                Some(parent.join("AddOns-backups").display().to_string())
+            })
+            .unwrap_or_default()
     }
 
     // ---- Starting commands ----
@@ -631,7 +639,7 @@ impl App {
             }
             Cmd::Remove { .. } => match parse::<wam::RemoveData>(&data) {
                 Some(d) if ok => {
-                    let text = format!("Removed {}. Moved to backups.", d.name);
+                    let text = format!("Removed {}. Saved a backup zip.", d.name);
                     self.add_log(Tone::Muted, text.clone());
                     self.outcome = (text, Tone::Muted);
                     self.reload();

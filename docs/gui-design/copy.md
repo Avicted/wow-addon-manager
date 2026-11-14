@@ -75,14 +75,14 @@ Plain English, sentence case, no terminal commands. `{x}` = value. Curly quotes 
 - `AddOns folder` · `Browse…` · ok `Folder found. {n} addons, {k} not tracked.` · bad `This folder doesn't exist. Choose the AddOns folder inside your game's Interface folder.`
 - `Unidentified folders` — `If you added addons by hand, wam can look at those folders again to work out where they came from.` · `Rescan unidentified folders` · done `Rescan done. {k} folders identified.`
 - `GitHub token (optional)` — `GitHub allows 60 update checks an hour without a token. If many of your addons come from GitHub, a token raises that limit. It needs no permissions.` · placeholder `Paste a token` · `Show token` · `Create a token on github.com`
-- `Backups` — `Removed and replaced addons are moved here, never deleted.` · `Open folder`
+- `Backups` — `Before an addon is removed or replaced, wam saves it here as a zip, so you can always put it back.` · `Open folder`
 
 ## About
 - Own tab (Ctrl+4): logo · `wam` · `v{version}` · `Keeps your World of Warcraft Forever 1.60 addons up to date.` · `Made by Victor Anderssén` · links `Source code on GitHub`, `github.com/Avicted` · `MIT licence`
 
 ## Dialogs
 - Track: `Where does {name} come from?` — `wam found these folders but doesn't know which addon they belong to, so it can't check them for updates.` · label `Addon page or name` · help `Paste a CurseForge link, type a CurseForge name such as details, or a GitHub project such as github:Questie/Questie.` · `Cancel` · `Track`
-- Remove: `Remove {name}?` — `These folders are moved to the backups folder. Nothing is deleted, so you can put them back later.` · `Backups folder` {path} · `Your in-game settings for this addon are never touched.` · `Cancel` · `Remove`
+- Remove: `Remove {name}?` — `These folders are saved as a zip in the backups folder first, so you can put them back later.` · `Backups folder` {path} · `Your in-game settings for this addon are never touched.` · `Cancel` · `Remove`
 
 ## Bottom strip
 - `Last check {time} · {summary}` · `Activity ({n})`

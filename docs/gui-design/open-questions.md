@@ -9,7 +9,7 @@
    the ref itself; this reads better for players.
 5. **Fix** has no confirm dialog (it reinstalls, then moves the broken folder to backups).
 6. **Download counts** are abbreviated (2.1M, 310K); assumes wam sends raw numbers.
-7. **Backups path** on Linux is the XDG data dir; mockups show the Windows path.
+7. **Backups path** is `Interface/AddOns-backups`, beside AddOns, on every platform.
 8. **Light theme** has tokens only, no mockups (per brief).
 9. **Window title bar** is native and not drawn in the mockups.
 10. **Sample data** beyond the brief (other addon names, versions, download counts) is placeholder.

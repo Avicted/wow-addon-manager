@@ -31,7 +31,7 @@
 
 ## Remove
 1. Trash icon on a row → Remove dialog with folder names and backups path; focus on **Cancel**.
-2. **Remove** → dialog closes, row disappears, strip `Removed Auctionator. Moved to backups.`
+2. **Remove** → dialog closes, row disappears, strip `Removed Auctionator. Saved a backup zip.`
 
 ## Fix a broken folder
 1. **Broken** → **Fix** on `WeakAuras` (source known): runs install, then removes the broken folder.

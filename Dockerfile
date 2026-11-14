@@ -29,6 +29,16 @@ RUN apk add --no-cache gcc musl-dev
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=1 go test -race ./...
 
+# `make cover` exports coverage.out, a per-function summary and an HTML report.
+FROM source AS cover
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    mkdir /cover && go test -covermode=atomic -coverprofile=/cover/coverage.out ./... \
+    && go tool cover -func=/cover/coverage.out > /cover/coverage.txt \
+    && go tool cover -html=/cover/coverage.out -o /cover/coverage.html
+
+FROM scratch AS coverage
+COPY --from=cover /cover/ /
+
 FROM source AS compile
 ARG VERSION=dev
 COPY --from=test /tested /tested

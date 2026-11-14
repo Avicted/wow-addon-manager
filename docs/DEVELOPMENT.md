@@ -4,6 +4,7 @@ Everything runs in Docker through make; `make` lists the commands.
 
 ```
 make test         go vet + go test, then go test -race, in the Dockerfile's test and race stages
+make cover        coverage report in build/coverage/ (coverage.html, coverage.txt)
 make image        the runtime image (wam:VERSION); its build runs the tests too
 make smoke        the image reports VERSION and can change a mounted AddOns directory
 make dist         static binary in build/dist/wam
@@ -11,7 +12,7 @@ make pre-commit   every hook on every file
 make hooks        install the pre-commit git hook
 ```
 
-With Go installed, `go test ./...` and `go run ./cmd/wam status` work directly.
+With Go installed, `go test ./...` (`-cover` for coverage) and `go run ./cmd/wam status` work directly.
 
 The parsers of downloaded files have fuzz tests; their seeds run with `go test`. To
 fuzz for a while:

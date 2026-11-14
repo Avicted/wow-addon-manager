@@ -163,6 +163,26 @@ func pruneBackups(dir string) {
 	}
 }
 
+const stagingPrefix = ".wam-staging-"
+
+// CleanStaging removes staging directories left beside AddOns by a wam that was killed,
+// when they are older than olderThan.
+func CleanStaging(addonsDir string, olderThan time.Duration) {
+	parent := filepath.Dir(addonsDir)
+	entries, err := os.ReadDir(parent)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if !e.IsDir() || !strings.HasPrefix(e.Name(), stagingPrefix) {
+			continue
+		}
+		if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > olderThan {
+			_ = os.RemoveAll(filepath.Join(parent, e.Name()))
+		}
+	}
+}
+
 // Install downloads rel and swaps its folders into AddOns, backing up what it replaces.
 // On failure everything is put back and a is unchanged. With takeover, folders owned by
 // another addon are taken from it (an explicit install); otherwise that's an error.
@@ -182,7 +202,7 @@ func (in *Installer) Install(st *state.State, a *state.Addon, rel source.Release
 	}
 
 	// Stage beside AddOns so the final move is a rename on the same filesystem.
-	stage, err := os.MkdirTemp(filepath.Dir(in.AddonsDir), ".wam-staging-")
+	stage, err := os.MkdirTemp(filepath.Dir(in.AddonsDir), stagingPrefix)
 	if err != nil {
 		return err
 	}

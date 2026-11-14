@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Avicted/wow-addon-manager/internal/source"
 	"github.com/Avicted/wow-addon-manager/internal/state"
@@ -231,5 +232,27 @@ func TestRemoveMovesToBackup(t *testing.T) {
 	backup, err := in.Remove("Foo", []string{"Foo", "Missing"})
 	if err != nil || exists(filepath.Join(in.AddonsDir, "Foo")) || !exists(filepath.Join(backup, "Foo", "Foo.toc")) {
 		t.Fatalf("backup %s, err %v", backup, err)
+	}
+}
+
+func TestCleanStagingRemovesOnlyOldStagingDirs(t *testing.T) {
+	in := newInstaller(t)
+	parent := filepath.Dir(in.AddonsDir)
+	for _, d := range []string{".wam-staging-old", ".wam-staging-new", "Other"} {
+		writeFile(t, filepath.Join(parent, d, "f"), "x")
+	}
+	old := time.Now().Add(-2 * time.Hour)
+	if err := os.Chtimes(filepath.Join(parent, ".wam-staging-old"), old, old); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(filepath.Join(parent, "Other"), old, old); err != nil {
+		t.Fatal(err)
+	}
+	CleanStaging(in.AddonsDir, time.Hour)
+	if exists(filepath.Join(parent, ".wam-staging-old")) {
+		t.Error("old staging directory kept")
+	}
+	if !exists(filepath.Join(parent, ".wam-staging-new")) || !exists(filepath.Join(parent, "Other")) || !exists(in.AddonsDir) {
+		t.Error("removed something it shouldn't have")
 	}
 }

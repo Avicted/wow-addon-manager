@@ -250,6 +250,17 @@ fn find_rows_sit_exactly_one_row_apart() {
 }
 
 #[test]
+fn toolbar_summary_lines_up_with_the_buttons() {
+    let h = harness(populated(), Vec2::new(960.0, 640.0));
+    let summary = h.get_by_label("2 updates available").rect().center().y;
+    let button = h.get_by_label("Refresh").rect().center().y;
+    assert!(
+        (summary - button).abs() < 1.0,
+        "summary {summary}, button {button}"
+    );
+}
+
+#[test]
 #[ignore = "renders with the GPU; run with --ignored to write target/ui-shots"]
 fn screenshots() {
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target/ui-shots");

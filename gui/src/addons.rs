@@ -75,21 +75,33 @@ fn toolbar(app: &mut App, ui: &mut Ui) {
             260.0
         };
         let left_w = (ui.available_width() - right_w).max(200.0);
-        ui.allocate_ui_with_layout(
-            Vec2::new(left_w, 34.0),
-            Layout::top_down(Align::Min).with_main_align(Align::Center),
-            |ui| {
-                ui.spacing_mut().item_spacing.y = 6.0;
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 6.0;
-                    ui.label(text(main, 14.0, Weight::SemiBold, color));
-                    truncated(ui, text(rest, 13.0, Weight::Regular, theme::MUTED));
-                });
-                if let Some(p) = progress {
-                    widgets::progress(ui, p);
-                }
-            },
-        );
+        let line = |ui: &mut Ui| {
+            ui.spacing_mut().item_spacing.x = 6.0;
+            ui.label(text(main, 14.0, Weight::SemiBold, color));
+            truncated(ui, text(rest, 13.0, Weight::Regular, theme::MUTED));
+        };
+        match progress {
+            // Alone, the line is centred in a row as tall as the buttons (30 px), level with
+            // them. A top-down layout's main_align does not centre it: it stays at the top.
+            None => {
+                ui.allocate_ui_with_layout(
+                    Vec2::new(left_w, 30.0),
+                    Layout::left_to_right(Align::Center),
+                    line,
+                );
+            }
+            Some(p) => {
+                ui.allocate_ui_with_layout(
+                    Vec2::new(left_w, 34.0),
+                    Layout::top_down(Align::Min).with_main_align(Align::Center),
+                    |ui| {
+                        ui.spacing_mut().item_spacing.y = 6.0;
+                        ui.horizontal(line);
+                        widgets::progress(ui, p);
+                    },
+                );
+            }
+        }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             if app.updating() {
                 let label = if app.cancelling() {

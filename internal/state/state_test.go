@@ -57,7 +57,7 @@ func TestAdopt(t *testing.T) {
 		if p, ok := known[ref]; ok {
 			return p, nil
 		}
-		return source.Project{}, fmt.Errorf("not found")
+		return source.Project{}, fmt.Errorf("slug: %w", source.ErrNotFound)
 	}
 
 	folders := scan(t, d)
@@ -108,7 +108,9 @@ func TestPrefixGroupingSkipsInstalledAddons(t *testing.T) {
 	d := t.TempDir()
 	writeFile(t, filepath.Join(d, "Questie", "Questie.toc"), "## Version: 1\n")
 	writeFile(t, filepath.Join(d, "QuestieDB", "QuestieDB.toc"), "## Version: 1\n")
-	lookup := func(string) (source.Project, error) { return source.Project{}, fmt.Errorf("not found") }
+	lookup := func(string) (source.Project, error) {
+		return source.Project{}, fmt.Errorf("slug: %w", source.ErrNotFound)
+	}
 	st := &State{AddonsDir: d, Addons: []*Addon{{Name: "Questie", Source: source.Curse, Project: "1", Release: "9", Folders: []string{"Questie"}}}}
 	st.Adopt(scan(t, d), lookup, t.Logf)
 	if st.Owner("QuestieDB") != nil || !slices.Equal(st.Unresolved, []string{"QuestieDB"}) {
@@ -193,4 +195,38 @@ func TestLockIsExclusive(t *testing.T) {
 		t.Fatalf("lock after unlock: %v", err)
 	}
 	again()
+}
+
+func TestAdoptRetriesAfterTransientFailures(t *testing.T) {
+	d := t.TempDir()
+	writeFile(t, filepath.Join(d, "Details", "Details.toc"), "## Version: 1\n")
+	writeFile(t, filepath.Join(d, "Questie", "Questie.toc"), "## Version: 1\n## X-Curse-Project-ID: 334372\n")
+	writeFile(t, filepath.Join(d, "Unknown", "Unknown.toc"), "## Version: 1\n")
+
+	down := true
+	lookup := func(ref string) (source.Project, error) {
+		switch {
+		case down && ref != "unknown" && ref != "curse:999":
+			return source.Project{}, fmt.Errorf("HTTP 503 from %s", ref)
+		case ref == "details":
+			return source.Project{Source: source.Curse, ID: "1", Title: "Details"}, nil
+		case ref == "curse:334372":
+			return source.Project{Source: source.Curse, ID: "334372", Title: "Questie"}, nil
+		}
+		return source.Project{}, fmt.Errorf("slug %s: %w", ref, source.ErrNotFound)
+	}
+	st := &State{AddonsDir: d}
+	st.Adopt(scan(t, d), lookup, t.Logf)
+	if slices.Contains(st.Unresolved, "Details") || slices.Contains(st.Unresolved, "Questie") {
+		t.Fatalf("folders marked unresolved by a network failure: %v", st.Unresolved)
+	}
+	if !slices.Contains(st.Unresolved, "Unknown") {
+		t.Fatalf("a definitive not-found must still be remembered: %v", st.Unresolved)
+	}
+
+	down = false
+	st.Adopt(scan(t, d), lookup, t.Logf)
+	if st.Find("Details") == nil || st.Find("Questie") == nil {
+		t.Fatalf("not adopted once the network was back: %+v", st.Addons)
+	}
 }

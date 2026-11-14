@@ -244,7 +244,10 @@ func (s *State) Adopt(folders []toc.Folder, lookup Lookup, log func(string, ...a
 
 	// Pass 1: folders that name their CurseForge project. Pass 2: everything else, first by
 	// folder-name prefix (ForeverArtisan_*, QuestieDB) and only then by guessing a slug.
+	// A lookup that failed for any reason but "not found" (network down, 5xx) says nothing about
+	// the folder, so it is not recorded as unresolved: the next run tries again.
 	var rest []toc.Folder
+	retry := map[string]bool{}
 	for _, f := range todo {
 		id := f.Get("X-Curse-Project-ID")
 		if !source.IsProjectID(id) || slices.Contains(s.Unresolved, f.Name) {
@@ -254,6 +257,7 @@ func (s *State) Adopt(folders []toc.Folder, lookup Lookup, log func(string, ...a
 		p, err := lookup("curse:" + id)
 		if err != nil {
 			log("%s: CurseForge project %s: %v", f.Name, id, err)
+			retry[f.Name] = !errors.Is(err, source.ErrNotFound)
 			rest = append(rest, f)
 			continue
 		}
@@ -268,8 +272,12 @@ func (s *State) Adopt(folders []toc.Folder, lookup Lookup, log func(string, ...a
 		if slices.Contains(s.Unresolved, f.Name) {
 			continue
 		}
-		if p, ok := identify(f, lookup); ok {
+		p, ok, failed := identify(f, lookup, log)
+		if ok {
 			attach(s.Add(p, f.Name), f)
+			continue
+		}
+		if failed || retry[f.Name] {
 			continue
 		}
 		s.Unresolved = append(s.Unresolved, f.Name)
@@ -317,11 +325,22 @@ func Slug(s string) string {
 }
 
 // identify finds a folder's CurseForge project from its X-Website, or by guessing the slug from
-// its name and accepting the guess only when the project title matches.
-func identify(f toc.Folder, lookup Lookup) (source.Project, bool) {
+// its name and accepting the guess only when the project title matches. failed reports that a
+// lookup broke for a reason other than "not found", so the folder may still be identifiable.
+func identify(f toc.Folder, lookup Lookup, log func(string, ...any)) (p source.Project, ok, failed bool) {
+	try := func(ref string) (source.Project, error) {
+		p, err := lookup(ref)
+		if err != nil && !errors.Is(err, source.ErrNotFound) {
+			if !failed {
+				log("%s: looking up %q: %v (will retry next run)", f.Name, ref, err)
+			}
+			failed = true
+		}
+		return p, err
+	}
 	if slug, ok := source.CurseSlug(f.Get("X-Website")); ok {
-		if p, err := lookup(slug); err == nil {
-			return p, true
+		if p, err := try(slug); err == nil {
+			return p, true, failed
 		}
 	}
 	title := toc.CleanTitle(f.Get("Title"))
@@ -336,15 +355,15 @@ func identify(f toc.Folder, lookup Lookup) (source.Project, bool) {
 		}
 	}
 	for _, g := range guesses {
-		p, err := lookup(g)
+		p, err := try(g)
 		if err != nil {
 			continue
 		}
 		if n := Normalize(p.Title); n == Normalize(title) || n == Normalize(f.Name) {
-			return p, true
+			return p, true, failed
 		}
 	}
-	return source.Project{}, false
+	return source.Project{}, false, failed
 }
 
 var versionToken = regexp.MustCompile(`[^A-Za-z0-9.]+`)

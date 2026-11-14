@@ -357,3 +357,50 @@ func TestGithubDigestOnlySha256(t *testing.T) {
 		}
 	}
 }
+
+func TestWagoForeverSlugs(t *testing.T) {
+	old := wagoAPI
+	wagoAPI = serve(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/data/slugs" || r.URL.Query().Get("game_version") != "forever" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"addons":{"details":{"download_count":7},"questie":{"download_count":9}}}`))
+	})
+	t.Cleanup(func() { wagoAPI = old })
+	got, err := WagoForeverSlugs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	downloads := map[string]int{}
+	for _, s := range got {
+		downloads[s.Slug] = s.Downloads
+	}
+	if len(downloads) != 2 || downloads["details"] != 7 || downloads["questie"] != 9 {
+		t.Errorf("got %v", got)
+	}
+
+	wagoAPI = serve(t, func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) })
+	if _, err := WagoForeverSlugs(); err == nil {
+		t.Error("a failing Wago endpoint should be an error")
+	}
+}
+
+func TestLatestDispatchesBySource(t *testing.T) {
+	stub(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/repos/o/r/releases/latest" {
+			_, _ = w.Write([]byte(`{"tag_name":"v9","assets":[{"name":"r.zip","browser_download_url":"http://x/r.zip"}]}`))
+			return
+		}
+		http.NotFound(w, r)
+	})
+	if rel, err := Latest(Project{Source: GitHub, ID: "o/r"}); err != nil || rel.Version != "v9" {
+		t.Errorf("github: %+v, %v", rel, err)
+	}
+	if _, err := Latest(Project{Source: Curse, ID: "1"}); err == nil {
+		t.Error("curse with no files should be an error")
+	}
+	if _, err := Latest(Project{Source: "nope", ID: "1"}); err == nil {
+		t.Error("unknown source should be an error")
+	}
+}

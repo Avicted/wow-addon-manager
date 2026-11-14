@@ -9,13 +9,17 @@ command-line tool, for Windows and Linux.
 
 ## Download
 
-Get the files for your system from the [latest release](../../releases/latest):
+**[Download for Windows](https://github.com/Avicted/wow-addon-manager/releases/latest/download/wam-gui-windows-amd64.exe)**
+· [for Linux](https://github.com/Avicted/wow-addon-manager/releases/latest/download/wam-gui-linux-amd64)
+
+Those links always fetch the newest version of the desktop app. The
+[latest release](https://github.com/Avicted/wow-addon-manager/releases/latest) has every file:
 
 | File | What |
 |---|---|
-| `wam-gui-<version>-windows-amd64.exe` | Desktop app for Windows |
-| `wam-gui-<version>-linux-amd64` | Desktop app for Linux |
-| `wam-<version>-windows-amd64.exe`, `wam-<version>-linux-amd64` | Command-line tool only |
+| `wam-gui-windows-amd64.exe` | Desktop app for Windows |
+| `wam-gui-linux-amd64` | Desktop app for Linux |
+| `wam-windows-amd64.exe`, `wam-linux-amd64` | Command-line tool only |
 
 `SHA256SUMS` lists their checksums. The desktop app already contains the command-line tool, so
 you only need one of them.
@@ -24,7 +28,7 @@ you only need one of them.
   choose *More info*, then *Run anyway*. Some antivirus tools may warn because the app unpacks
   and runs its built-in `wam.exe`. It needs Windows 10 or later with a DirectX 12 or Vulkan
   graphics driver; without one, use the command-line tool.
-- **Linux:** `chmod +x wam-gui-*-linux-amd64`, then run it. It needs OpenGL (Mesa) and either
+- **Linux:** `chmod +x wam-gui-linux-amd64`, then run it. It needs OpenGL (Mesa) and either
   Wayland or X11, which a desktop system already has.
 
 ## Desktop app

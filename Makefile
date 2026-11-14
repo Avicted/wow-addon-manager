@@ -138,12 +138,13 @@ undo-version: ## Build: undo the last new-version
 	echo "undo-version: $(VERSION) -> $$old"
 	@$(MAKE) --no-print-directory release-check
 
-release-assets: dist gui release-check ## Build: versioned binaries and SHA256SUMS in build/release
+# The names carry no version, so .../releases/latest/download/<name> always fetches the newest.
+release-assets: dist gui release-check ## Build: release binaries and SHA256SUMS in build/release
 	rm -rf $(BUILD)/release && mkdir -p $(BUILD)/release
-	cp $(BUILD)/dist/wam $(BUILD)/release/wam-$(VERSION)-linux-amd64
-	cp $(BUILD)/dist/wam.exe $(BUILD)/release/wam-$(VERSION)-windows-amd64.exe
-	cp $(BUILD)/dist/wam-gui $(BUILD)/release/wam-gui-$(VERSION)-linux-amd64
-	cp $(BUILD)/dist/wam-gui.exe $(BUILD)/release/wam-gui-$(VERSION)-windows-amd64.exe
+	cp $(BUILD)/dist/wam $(BUILD)/release/wam-linux-amd64
+	cp $(BUILD)/dist/wam.exe $(BUILD)/release/wam-windows-amd64.exe
+	cp $(BUILD)/dist/wam-gui $(BUILD)/release/wam-gui-linux-amd64
+	cp $(BUILD)/dist/wam-gui.exe $(BUILD)/release/wam-gui-windows-amd64.exe
 	cd $(BUILD)/release && sha256sum * > SHA256SUMS && cat SHA256SUMS
 
 clean: ## Build: delete build/ (binaries, image stamps, tool caches)

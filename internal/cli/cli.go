@@ -194,6 +194,11 @@ func (e *env) sync(st *state.State) ([]toc.Folder, error) {
 	if err != nil {
 		return nil, err
 	}
+	for _, f := range folders {
+		if f.Err != nil {
+			e.logf("warning: can't read %s: %v", f.Name, f.Err)
+		}
+	}
 	if st.Adopt(folders, e.lookup, e.logf) {
 		if err := st.Save(); err != nil {
 			return nil, err
@@ -275,6 +280,8 @@ func cmdStatus(e *env, st *state.State, args []string) error {
 	untracked := map[string][]string{}
 	for _, f := range folders {
 		switch {
+		case f.Err != nil:
+			continue
 		case f.Broken:
 			hint := ""
 			if id := f.Get("X-Curse-Project-ID"); id != "" {

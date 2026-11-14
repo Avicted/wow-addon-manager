@@ -230,3 +230,19 @@ func TestAdoptRetriesAfterTransientFailures(t *testing.T) {
 		t.Fatalf("not adopted once the network was back: %+v", st.Addons)
 	}
 }
+
+func TestAdoptIgnoresUnreadableFolders(t *testing.T) {
+	d := t.TempDir()
+	writeFile(t, filepath.Join(d, "Tracked", "Tracked.toc"), "## Version: 1\n")
+	tracked := &Addon{Name: "Tracked", Source: source.Curse, Project: "1", Release: "9", Folders: []string{"Tracked"}}
+	st := &State{AddonsDir: d, Addons: []*Addon{tracked}}
+	folders := []toc.Folder{
+		{Name: "Tracked", Err: fmt.Errorf("permission denied")},
+		{Name: "Locked", Err: fmt.Errorf("permission denied")},
+	}
+	lookup := func(ref string) (source.Project, error) { t.Errorf("looked up %q", ref); return source.Project{}, nil }
+	st.Adopt(folders, lookup, t.Logf)
+	if st.Find("Tracked") != tracked || len(st.Unresolved) != 0 {
+		t.Fatalf("addons %+v, unresolved %v", st.Addons, st.Unresolved)
+	}
+}

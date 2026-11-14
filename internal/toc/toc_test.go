@@ -89,3 +89,22 @@ func FuzzParse(f *testing.F) {
 		}
 	})
 }
+
+func TestScanKeepsUnreadableFolders(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "Good", "Good.toc"), "## Version: 1\n")
+	// A dangling symlink: the .toc is listed but can't be opened (works the same as root).
+	if err := os.MkdirAll(filepath.Join(dir, "Bad"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(dir, "nowhere"), filepath.Join(dir, "Bad", "Bad.toc")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Scan(dir)
+	if err != nil || len(got) != 2 {
+		t.Fatalf("Scan = %+v, %v", got, err)
+	}
+	if got[0].Name != "Bad" || got[0].Err == nil || got[1].Name != "Good" || got[1].Err != nil || got[1].Get("Version") != "1" {
+		t.Fatalf("Scan = %+v", got)
+	}
+}

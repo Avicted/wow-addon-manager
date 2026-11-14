@@ -20,6 +20,7 @@ type Folder struct {
 	Name   string
 	Fields map[string]string // lower-cased "## Key" -> value
 	Broken bool              // files with literal backslashes: a Windows zip unpacked on Linux
+	Err    error             // the folder couldn't be read; it is listed but nothing else is known
 }
 
 // Get returns a TOC field by name, case-insensitively.
@@ -115,7 +116,9 @@ func readFile(path string) (map[string]string, error) {
 	return Parse(file), nil
 }
 
-// Scan reads every addon folder, skipping hidden entries (wam's own staging directories).
+// Scan reads every addon folder, skipping hidden entries (wam's own staging directories). A
+// folder that can't be read is still listed, with Err set, so one bad folder doesn't stop
+// wam and a tracked addon isn't forgotten because of it.
 func Scan(addonsDir string) ([]Folder, error) {
 	entries, err := os.ReadDir(addonsDir)
 	if err != nil {
@@ -130,9 +133,7 @@ func Scan(addonsDir string) ([]Folder, error) {
 			continue
 		}
 		f, err := Read(addonsDir, e.Name())
-		if err != nil {
-			return nil, err
-		}
+		f.Err = err
 		out = append(out, f)
 	}
 	return out, nil

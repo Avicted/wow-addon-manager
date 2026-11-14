@@ -229,7 +229,7 @@ func (s *State) Adopt(folders []toc.Folder, lookup Lookup, log func(string, ...a
 
 	var todo []toc.Folder
 	for _, f := range folders {
-		if !f.Broken && s.Owner(f.Name) == nil {
+		if !f.Broken && f.Err == nil && s.Owner(f.Name) == nil {
 			todo = append(todo, f)
 		}
 	}

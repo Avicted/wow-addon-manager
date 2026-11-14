@@ -357,3 +357,23 @@ func TestRunRefusesWhileAnotherWamRuns(t *testing.T) {
 		t.Fatalf("%d %q", code, errOut)
 	}
 }
+
+func TestStatusSurvivesAnUnreadableFolder(t *testing.T) {
+	f := newFixture(t)
+	f.track(t, "Questie", "1", "10", "10").Release = "10"
+	if err := os.MkdirAll(filepath.Join(f.addons, "Bad"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(f.addons, "nowhere"), filepath.Join(f.addons, "Bad", "Bad.toc")); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmdStatus(f.e, f.st, nil); err != nil {
+		t.Fatal(err)
+	}
+	if out := f.out.String(); !strings.Contains(out, "Questie") || strings.Contains(out, "wam track Bad") {
+		t.Fatalf("output:\n%s", out)
+	}
+	if !strings.Contains(f.log.String(), "warning: can't read Bad") {
+		t.Fatalf("log:\n%s", f.log.String())
+	}
+}

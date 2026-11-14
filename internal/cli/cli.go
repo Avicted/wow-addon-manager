@@ -52,6 +52,32 @@ type env struct {
 	out, err  io.Writer
 	inst      *install.Installer
 	lookup    state.Lookup
+	color     bool
+}
+
+// paint wraps s in an ANSI color when the output is a terminal.
+func (e *env) paint(code, s string) string {
+	if !e.color {
+		return s
+	}
+	return "\x1b[" + code + "m" + s + "\x1b[0m"
+}
+
+// isTerminal reports whether w is a terminal and NO_COLOR is unset.
+func isTerminal(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	if !ok || os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+	fi, err := f.Stat()
+	return err == nil && fi.Mode()&os.ModeCharDevice != 0
+}
+
+func plural(n int, word string) string {
+	if n == 1 {
+		return fmt.Sprintf("%d %s", n, word)
+	}
+	return fmt.Sprintf("%d %ss", n, word)
 }
 
 func (e *env) printf(format string, args ...any) { _, _ = fmt.Fprintf(e.out, format+"\n", args...) }
@@ -90,7 +116,7 @@ func Run(args []string, out, errOut io.Writer, version string) int {
 		_, err = os.Stat(dir)
 	}
 	dataDir := dataDir(home)
-	e := &env{addonsDir: dir, out: out, err: errOut, lookup: source.Resolve}
+	e := &env{addonsDir: dir, out: out, err: errOut, lookup: source.Resolve, color: isTerminal(out)}
 	e.inst = &install.Installer{AddonsDir: dir, DataDir: dataDir, Log: e.logf}
 	if err != nil {
 		e.logf("wam: AddOns directory: %v", err)
@@ -199,14 +225,16 @@ func cmdStatus(e *env, st *state.State, args []string) error {
 	tw := tabwriter.NewWriter(e.out, 0, 0, 2, ' ', 0)
 	_, _ = fmt.Fprintln(tw, "ADDON\tINSTALLED\tLATEST\tSOURCE\tSTATUS")
 	updates, guessed := 0, false
+	var errs [][2]string
 	for _, a := range st.Addons {
 		c := checks[a]
-		status := "ok"
+		status := e.paint("32", "ok")
 		switch {
 		case c.err != nil:
-			status = "error: " + c.err.Error()
+			status = e.paint("31", "error")
+			errs = append(errs, [2]string{a.Name, c.err.Error()})
 		case c.outdated(a):
-			status = "UPDATE"
+			status = e.paint("33", "update")
 			updates++
 		}
 		installed := state.ShortVersion(a.Name, a.Version)
@@ -216,16 +244,20 @@ func cmdStatus(e *env, st *state.State, args []string) error {
 		}
 		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", a.Name, installed, state.ShortVersion(a.Name, c.rel.Version), a.Ref(), status)
 	}
+	if err := tw.Flush(); err != nil {
+		return err
+	}
 
+	var broken [][2]string
 	untracked := map[string][]string{}
 	for _, f := range folders {
 		switch {
 		case f.Broken:
-			hint := "BROKEN: unpacked with literal backslashes; the game can't load it"
+			hint := ""
 			if id := f.Get("X-Curse-Project-ID"); id != "" {
-				hint += fmt.Sprintf(" (fix: wam install curse:%s && wam remove %q)", id, f.Name)
+				hint = fmt.Sprintf("fix: wam install curse:%s && wam remove %q", id, f.Name)
 			}
-			_, _ = fmt.Fprintf(tw, "%s\t\t\t\t%s\n", f.Name, hint)
+			broken = append(broken, [2]string{f.Name, hint})
 		case st.Owner(f.Name) == nil:
 			root := state.RootName(f.Name)
 			untracked[root] = append(untracked[root], f.Name)
@@ -236,25 +268,43 @@ func cmdStatus(e *env, st *state.State, args []string) error {
 		roots = append(roots, r)
 	}
 	sort.Strings(roots)
+	var untrackedRows [][2]string
 	for _, r := range roots {
 		names := untracked[r]
 		label := names[0]
 		if len(names) > 1 {
 			label = fmt.Sprintf("%s (+%d folders)", r, len(names)-1)
 		}
-		_, _ = fmt.Fprintf(tw, "%s\t\t\t\tuntracked (wam track %s <curseforge-url>)\n", label, names[0])
-	}
-	if err := tw.Flush(); err != nil {
-		return err
+		untrackedRows = append(untrackedRows, [2]string{label, fmt.Sprintf("wam track %s <curseforge-url>", names[0])})
 	}
 
+	e.section(e.paint("31", "Errors:"), errs)
+	e.section("Not tracked (wam doesn't know where these come from):", untrackedRows)
+	e.section(e.paint("31", "Broken (unpacked with literal backslashes; the game can't load them):"), broken)
+
+	e.printf("")
 	if guessed {
-		e.printf("\n~ installed outside wam: compared by TOC version; exact after the first wam update")
+		e.printf("~ installed outside wam: compared by .toc version until the first update.")
 	}
 	if updates > 0 {
-		e.printf("\n%d update(s) available; run: wam update", updates)
+		e.printf("%s available. Run: wam update", plural(updates, "update"))
+	} else {
+		e.printf("All %s up to date.", plural(len(st.Addons), "addon"))
 	}
 	return nil
+}
+
+// section prints a titled, aligned two-column list after a blank line; nothing if rows is empty.
+func (e *env) section(title string, rows [][2]string) {
+	if len(rows) == 0 {
+		return
+	}
+	e.printf("\n%s", title)
+	tw := tabwriter.NewWriter(e.out, 0, 0, 2, ' ', 0)
+	for _, r := range rows {
+		_, _ = fmt.Fprintf(tw, "  %s\t%s\n", r[0], r[1])
+	}
+	_ = tw.Flush()
 }
 
 func cmdUpdate(e *env, st *state.State, args []string) error {
@@ -303,20 +353,36 @@ func cmdUpdate(e *env, st *state.State, args []string) error {
 	if !dry && install.WowRunning() {
 		e.logf("warning: WoW is running; updated addons load after /reload or a restart")
 	}
+	tw := tabwriter.NewWriter(e.out, 0, 0, 2, ' ', 0)
+	updated := 0
 	for _, a := range todo {
 		rel := checks[a].rel
-		e.printf("%s: %s -> %s", a.Name, orDash(state.ShortVersion(a.Name, a.Version)), state.ShortVersion(a.Name, rel.Version))
-		if dry {
-			continue
+		status := e.paint("33", "would update")
+		if !dry {
+			if err := e.inst.Install(st, a, rel, false); err != nil {
+				status = e.paint("31", "failed: "+err.Error())
+				failed++
+			} else if err := st.Save(); err != nil {
+				_ = tw.Flush()
+				return err
+			} else {
+				status = e.paint("32", "updated")
+				updated++
+			}
 		}
-		if err := e.inst.Install(st, a, rel, false); err != nil {
-			e.logf("  failed: %v", err)
-			failed++
-			continue
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t->\t%s\t%s\n", a.Name, orDash(state.ShortVersion(a.Name, a.Version)), state.ShortVersion(a.Name, rel.Version), status)
+	}
+	if err := tw.Flush(); err != nil {
+		return err
+	}
+	if dry {
+		e.printf("\nDry run: %s, nothing changed.", plural(len(todo), "update"))
+	} else {
+		msg := "Updated " + plural(updated, "addon")
+		if failed > 0 {
+			msg += fmt.Sprintf(", %d failed", failed)
 		}
-		if err := st.Save(); err != nil {
-			return err
-		}
+		e.printf("\n%s.", msg)
 	}
 	return failedErr(failed)
 }

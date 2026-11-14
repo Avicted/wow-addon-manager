@@ -128,6 +128,6 @@ pre-commit: $(LINT_STAMP) ## Development: run every pre-commit hook on every fil
 prek: $(LINT_STAMP)
 	$(call run-prek,$(ARGS))
 
-hooks: $(LINT_STAMP) ## Development: install the git hooks (pre-commit, commit-msg)
+hooks: $(LINT_STAMP) ## Development: install the pre-commit git hook
 	git config core.hooksPath scripts/git-hooks
 	@echo "hooks: git now runs scripts/git-hooks (prek in Docker)"

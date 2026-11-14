@@ -1,5 +1,5 @@
 # Keeps every pin current. The prefixes keep Dependabot's commit subjects
-# conventional, so they pass the commit-msg check.
+# in the Conventional Commits style.
 version: 2
 updates:
   - package-ecosystem: github-actions

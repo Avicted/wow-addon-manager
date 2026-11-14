@@ -8,7 +8,7 @@ make image        the runtime image (wam:VERSION); its build runs the tests too
 make smoke        the image reports VERSION and can change a mounted AddOns directory
 make dist         static binary in build/dist/wam
 make pre-commit   every hook on every file
-make hooks        install the git hooks
+make hooks        install the pre-commit git hook
 ```
 
 With Go installed, `go test ./...` and `go run ./cmd/wam status` work directly.
@@ -25,19 +25,17 @@ make status ADDONS_DIR=/tmp/wam-try/Interface/AddOns DATA_DIR=/tmp/wam-try/data
 
 ## Hooks
 
-`make hooks` sets `core.hooksPath` to `scripts/git-hooks`. Both hooks run prek
+`make hooks` sets `core.hooksPath` to `scripts/git-hooks`. The pre-commit hook runs prek
 in the image built from `Dockerfile.pre-commit`, so nothing but Docker is
 needed:
 
 | Stage | Hooks |
 |---|---|
 | pre-commit | prek built-ins (whitespace, end of file, YAML, merge markers, large files, case conflicts, shebangs, line endings), gitleaks, golangci-lint fmt + lint (`.golangci.yml`), hadolint |
-| commit-msg | Conventional Commits (`ghcr.io/avicted/conventional-commits`) |
 
 `Dockerfile.pre-commit` copies each tool's binary from its official image,
 pinned by digest, and `.pre-commit-config.yaml` uses each tool's published
-`*-system` hook, so nothing is downloaded or built when a hook first runs. The
-conventional-commit hook is defined locally because its repository is private.
+`*-system` hook, so nothing is downloaded or built when a hook first runs.
 
 Caches (prek, Go, golangci-lint) live in `build/cache`; `make clean` removes them.
 Git worktrees aren't supported by the hooks: their `.git` points outside the
@@ -53,5 +51,4 @@ mounted directory.
 
 ## Commits
 
-[Conventional Commits](https://www.conventionalcommits.org/), checked by the
-commit-msg hook and in CI.
+Follow [Conventional Commits](https://www.conventionalcommits.org/).

@@ -1,12 +1,12 @@
 # This repository's hooks, run by prek inside Dockerfile.pre-commit:
 #
-#   make hooks        install the pre-commit and commit-msg git hooks
+#   make hooks        install the pre-commit git hook
 #   make pre-commit   run every hook on every file
 #
 # Only published hook definitions, each pinned. The tools they call are the
 # `*-system` variants: Dockerfile.pre-commit puts digest-pinned binaries on PATH,
 # so no hook needs Python, Docker-in-Docker or anything on the host.
-default_install_hook_types: [pre-commit, commit-msg]
+default_install_hook_types: [pre-commit]
 default_stages: [pre-commit]
 
 repos:
@@ -50,15 +50,3 @@ repos:
     rev: v2.15.1
     hooks:
       - id: hadolint
-
-  # Commit subjects follow Conventional Commits. This mirrors the
-  # conventional-commit-system hook of Avicted/tools.conventional-commits, which
-  # is a private repository prek cannot clone; the binary comes from its public
-  # image (Dockerfile.pre-commit). Switch to the published hook if it goes public.
-  - repo: local
-    hooks:
-      - id: conventional-commit
-        name: Conventional Commit Checker
-        language: system
-        entry: conventional-commits
-        stages: [commit-msg]

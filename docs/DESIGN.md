@@ -85,3 +85,14 @@ whole `Interface` directory (staging happens beside AddOns) and the data
 directory at their host paths, so `state.json` is the same file whether wam
 runs natively or in Docker, and runs the container as the host user so files it
 writes stay the user's.
+
+## Limits
+
+- CurseForge is read through its website's API, which needs no key but isn't
+  the documented API and may change. Failures are reported per addon.
+- CurseForge search needs a key, so `search` checks the query as a CurseForge
+  name and searches Wago's list of Forever addons. A URL always works with
+  `install`.
+- Wago downloads need an API key and aren't supported.
+- wam warns when WoW is running if run natively; in Docker it can't see the
+  game's process.

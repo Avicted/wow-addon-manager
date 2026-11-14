@@ -22,7 +22,7 @@ AS_ME := --user $(shell id -u):$(shell id -g)
 TTY   := $(shell [ -t 0 ] && echo -t)
 
 .DEFAULT_GOAL := help
-.PHONY: help status update install remove search track wam image dist gui gui-test release-check new-version undo-version release-assets release-notes smoke test cover pre-commit hooks clean
+.PHONY: help status update install remove search track wam image dist gui gui-test release-check new-version undo-version release-assets release-notes smoke test check cover pre-commit hooks clean
 
 help: ## Help: list every command
 	@color=; [ -t 1 ] && [ -z "$${NO_COLOR:-}" ] && color=1; \
@@ -148,6 +148,9 @@ clean: ## Build: delete build/ (binaries, image stamps, tool caches)
 
 # ---------------------------------------------------------------------------
 # Development.
+
+# Everything CI runs, in one go. Each step is its own target, so a failure names the step.
+check: test gui-test smoke dist gui pre-commit release-check ## Development: run everything CI runs (tests, GUI, smoke, builds, hooks, release-check)
 
 test: ## Development: go vet, go test and go test -race (always re-run, even if cached)
 	docker build --target test --no-cache-filter test --progress plain .

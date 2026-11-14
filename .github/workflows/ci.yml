@@ -12,50 +12,20 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Every job runs the same make target a developer runs locally; the runner only
-# needs Docker and make.
+# CI runs the same make target a developer runs locally; the runner only needs
+# Docker and make. `make check` is everything: Go and GUI tests, the smoke test,
+# the Linux and Windows builds, the pre-commit hooks and the release check.
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: make test
-
-  image:
-    name: Image and binary
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: make smoke
-      - run: make dist
-
-  gui:
-    name: Desktop app
+  check:
+    name: make check
     runs-on: ubuntu-latest
     # Compiling eframe for Linux and Windows takes a while without a warm cache.
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - run: make gui
-
-  pre-commit:
-    name: Pre-commit hooks
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - run: make pre-commit
+      - run: make check
 
   commits:
     name: Conventional commits

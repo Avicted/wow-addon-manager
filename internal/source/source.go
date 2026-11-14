@@ -64,8 +64,9 @@ type Release struct {
 }
 
 type httpError struct {
-	Code int
-	URL  string
+	Code       int
+	URL        string
+	RetryAfter time.Duration // from the Retry-After header, if the server sent one
 }
 
 func (e *httpError) Error() string { return fmt.Sprintf("HTTP %d from %s", e.Code, e.URL) }
@@ -75,6 +76,34 @@ func isStatus(err error, code int) bool {
 	return errors.As(err, &he) && he.Code == code
 }
 
+// Transient failures are retried after these delays; a Retry-After from the server (at most
+// maxRetryAfter) replaces the delay. Variables so tests can shorten them.
+var (
+	retryDelays   = []time.Duration{time.Second, 3 * time.Second}
+	maxRetryAfter = 10 * time.Second
+)
+
+// retryDelay reports whether a failed request is worth repeating, and after how long.
+// Network errors, 429 and 502-504 are; any other HTTP status is the server's answer.
+func retryDelay(err error, attempt int) (time.Duration, bool) {
+	if attempt >= len(retryDelays) {
+		return 0, false
+	}
+	var he *httpError
+	if errors.As(err, &he) {
+		switch he.Code {
+		case http.StatusTooManyRequests, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+			if he.RetryAfter > 0 {
+				return min(he.RetryAfter, maxRetryAfter), true
+			}
+			return retryDelays[attempt], true
+		}
+		return 0, false
+	}
+	return retryDelays[attempt], true
+}
+
+// get fetches u, retrying transient failures.
 func get(c *http.Client, u string) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
@@ -84,13 +113,31 @@ func get(c *http.Client, u string) (*http.Response, error) {
 	if tok := os.Getenv("GITHUB_TOKEN"); tok != "" && strings.HasPrefix(u, githubAPI) {
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}
+	for attempt := 0; ; attempt++ {
+		resp, err := getOnce(c, req)
+		if err == nil {
+			return resp, nil
+		}
+		delay, ok := retryDelay(err, attempt)
+		if !ok {
+			return nil, err
+		}
+		time.Sleep(delay)
+	}
+}
+
+func getOnce(c *http.Client, req *http.Request) (*http.Response, error) {
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		_ = resp.Body.Close()
-		return nil, &httpError{resp.StatusCode, u}
+		he := &httpError{Code: resp.StatusCode, URL: req.URL.String()}
+		if secs, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil && secs > 0 {
+			he.RetryAfter = time.Duration(secs) * time.Second
+		}
+		return nil, he
 	}
 	return resp, nil
 }

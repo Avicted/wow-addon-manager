@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func serve(t *testing.T, h http.HandlerFunc) string {
@@ -206,5 +207,63 @@ func TestDownloadRefusesOversizeFiles(t *testing.T) {
 	maxDownload = 9
 	if err := Download(url, t.TempDir()+"/big.zip"); err == nil || !strings.Contains(err.Error(), "larger than") {
 		t.Fatalf("oversize file: err = %v", err)
+	}
+}
+
+func fastRetries(t *testing.T) {
+	t.Helper()
+	oldDelays, oldMax := retryDelays, maxRetryAfter
+	retryDelays, maxRetryAfter = []time.Duration{0, 0}, 0
+	t.Cleanup(func() { retryDelays, maxRetryAfter = oldDelays, oldMax })
+}
+
+func TestGetRetriesTransientErrors(t *testing.T) {
+	fastRetries(t)
+	for _, code := range []int{429, 502, 503, 504} {
+		calls := 0
+		u := serve(t, func(w http.ResponseWriter, r *http.Request) {
+			if calls++; calls == 1 {
+				w.Header().Set("Retry-After", "1")
+				w.WriteHeader(code)
+				return
+			}
+			_, _ = w.Write([]byte(`{}`))
+		})
+		var v map[string]any
+		if err := getJSON(u, &v); err != nil || calls != 2 {
+			t.Errorf("HTTP %d: err %v after %d calls, want success on the 2nd", code, err, calls)
+		}
+	}
+}
+
+func TestGetGivesUpAfterTwoRetries(t *testing.T) {
+	fastRetries(t)
+	calls := 0
+	u := serve(t, func(w http.ResponseWriter, r *http.Request) { calls++; w.WriteHeader(http.StatusServiceUnavailable) })
+	var v map[string]any
+	if err := getJSON(u, &v); !isStatus(err, 503) || calls != 3 {
+		t.Fatalf("err %v after %d calls, want 503 after 3", err, calls)
+	}
+}
+
+func TestGetDoesNotRetryDefinitiveAnswers(t *testing.T) {
+	fastRetries(t)
+	for _, code := range []int{400, 403, 404, 500} {
+		calls := 0
+		u := serve(t, func(w http.ResponseWriter, r *http.Request) { calls++; w.WriteHeader(code) })
+		var v map[string]any
+		if err := getJSON(u, &v); !isStatus(err, code) || calls != 1 {
+			t.Errorf("HTTP %d: err %v after %d calls, want 1 call", code, err, calls)
+		}
+	}
+}
+
+func TestRetryDelayHonorsRetryAfterWithCap(t *testing.T) {
+	err := &httpError{Code: 429, RetryAfter: time.Hour}
+	if d, ok := retryDelay(err, 0); !ok || d != maxRetryAfter {
+		t.Fatalf("delay %v, %v; want the cap %v", d, ok, maxRetryAfter)
+	}
+	if d, ok := retryDelay(&httpError{Code: 503}, 1); !ok || d != retryDelays[1] {
+		t.Fatalf("delay %v, %v; want %v", d, ok, retryDelays[1])
 	}
 }

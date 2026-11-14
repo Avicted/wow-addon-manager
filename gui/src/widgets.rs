@@ -1,9 +1,10 @@
 //! The design's components (docs/gui-design/components.md) as egui widgets.
 
 use eframe::egui::{
-    self, Align, Color32, CornerRadius, Layout, Rect, Response, RichText, Sense, Stroke,
+    self, Align, Color32, CornerRadius, Galley, Layout, Rect, Response, RichText, Sense, Stroke,
     StrokeKind, Ui, UiBuilder, Vec2, Widget, WidgetInfo, accesskit::Role,
 };
+use std::sync::Arc;
 
 use crate::theme::{self, Icon, Tint, Weight, font};
 
@@ -65,17 +66,20 @@ impl<'a> Button<'a> {
         self.tooltip = Some(tooltip);
         self
     }
-}
 
-impl Widget for Button<'_> {
-    fn ui(self, ui: &mut Ui) -> Response {
+    /// The width `ui.add` will give this button, for centring a row of them.
+    pub fn width(&self, ui: &Ui) -> f32 {
+        self.measure(ui).4
+    }
+
+    /// Height, side padding, label galley, icon width (with its gap) and total width.
+    fn measure(&self, ui: &Ui) -> (f32, f32, Option<Arc<Galley>>, f32, f32) {
         let (height, pad, size) = match self.kind {
             Kind::Small => (26.0, 10.0, 12.0),
             Kind::Ghost => (24.0, 8.0, 12.0),
             Kind::IconOnly => (26.0, 5.0, 12.0),
             _ => (30.0, 12.0, 13.0),
         };
-        let interactive = self.enabled && !self.busy;
         let galley = (!self.label.is_empty() && self.kind != Kind::IconOnly).then(|| {
             ui.painter().layout_no_wrap(
                 self.label.to_string(),
@@ -83,9 +87,8 @@ impl Widget for Button<'_> {
                 Color32::WHITE,
             )
         });
-        let has_icon = self.icon.is_some() || self.busy;
         let text_w = galley.as_ref().map_or(0.0, |g| g.size().x);
-        let icon_w = if has_icon {
+        let icon_w = if self.icon.is_some() || self.busy {
             16.0 + if galley.is_some() { 6.0 } else { 0.0 }
         } else {
             0.0
@@ -95,6 +98,15 @@ impl Widget for Button<'_> {
         } else {
             pad * 2.0 + icon_w + text_w
         };
+        (height, pad, galley, icon_w, width)
+    }
+}
+
+impl Widget for Button<'_> {
+    fn ui(self, ui: &mut Ui) -> Response {
+        let (height, pad, galley, icon_w, width) = self.measure(ui);
+        let interactive = self.enabled && !self.busy;
+        let has_icon = self.icon.is_some() || self.busy;
         let sense = if interactive {
             Sense::click()
         } else {

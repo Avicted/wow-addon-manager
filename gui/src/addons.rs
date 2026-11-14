@@ -938,18 +938,14 @@ fn empty_state(app: &mut App, ui: &mut Ui) {
             "Your AddOns folder is empty. Find an addon to install, or check that wam is looking in the right folder.",
             13.0, Weight::Regular, theme::MUTED)).wrap());
         ui.horizontal(|ui| {
-            let w = 220.0;
+            let find = Button::new(Kind::Primary, "Find addons").icon(Icon::Search);
+            let check = Button::new(Kind::Secondary, "Check folder");
+            let w = find.width(ui) + ui.spacing().item_spacing.x + check.width(ui);
             ui.add_space((ui.available_width() - w).max(0.0) / 2.0);
-            if ui
-                .add(Button::new(Kind::Primary, "Find addons").icon(Icon::Search))
-                .clicked()
-            {
+            if ui.add(find).clicked() {
                 app.tab = Tab::Find;
             }
-            if ui
-                .add(Button::new(Kind::Secondary, "Check folder"))
-                .clicked()
-            {
+            if ui.add(check).clicked() {
                 app.tab = Tab::Settings;
             }
         });

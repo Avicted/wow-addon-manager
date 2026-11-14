@@ -261,6 +261,31 @@ fn toolbar_summary_lines_up_with_the_buttons() {
 }
 
 #[test]
+fn empty_state_buttons_are_centred() {
+    let mut app = new_app();
+    app.pretend_finished(
+        Cmd::Status { rescan: false },
+        json!({"addons_dir": "/x", "backups_dir": "/b", "addons": [],
+        "untracked": [], "broken": [], "updates": 0, "wow_running": false}),
+    );
+    let h = harness(app, Vec2::new(960.0, 640.0));
+    let title = h.get_by_label("No addons yet").rect().center().x;
+    // The tab is called "Find addons" too; the button is the lower one.
+    let left = h
+        .query_all_by_label("Find addons")
+        .map(|n| n.rect())
+        .max_by(|a, b| a.top().total_cmp(&b.top()))
+        .unwrap()
+        .left();
+    let right = h.get_by_label("Check folder").rect().right();
+    let mid = (left + right) / 2.0;
+    assert!(
+        (mid - title).abs() < 1.0,
+        "buttons centred at {mid}, title at {title}"
+    );
+}
+
+#[test]
 #[ignore = "renders with the GPU; run with --ignored to write target/ui-shots"]
 fn screenshots() {
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target/ui-shots");

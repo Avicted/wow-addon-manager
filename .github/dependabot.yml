@@ -8,7 +8,7 @@ updates:
       interval: monthly
     commit-message:
       prefix: ci
-  # Dockerfile and Dockerfile.pre-commit, both pinned by digest.
+  # Dockerfile, Dockerfile.gui and Dockerfile.pre-commit, all pinned by digest.
   - package-ecosystem: docker
     directory: /
     schedule:
@@ -17,6 +17,12 @@ updates:
       prefix: build
   - package-ecosystem: gomod
     directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: build
+  - package-ecosystem: cargo
+    directory: /gui
     schedule:
       interval: monthly
     commit-message:

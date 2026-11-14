@@ -32,7 +32,7 @@ fn renderer() -> eframe::Renderer {
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("wam")
+            .with_title(format!("wam | v{}", wam::VERSION))
             .with_app_id("wam")
             .with_inner_size([960.0, 640.0])
             .with_min_inner_size([720.0, 480.0]),

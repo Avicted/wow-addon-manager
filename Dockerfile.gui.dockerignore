@@ -1,0 +1,8 @@
+# Dockerfile.gui's build context: the Go sources it embeds, VERSION and the GUI crate.
+*
+!go.mod
+!VERSION
+!cmd/
+!internal/
+!gui/
+gui/target/

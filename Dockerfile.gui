@@ -1,0 +1,57 @@
+# syntax=docker/dockerfile:1
+
+# wam-gui: the desktop app, for Linux and Windows, with the matching wam built in.
+#
+#   make gui        test, then export build/dist/wam-gui and build/dist/wam-gui.exe
+#   make gui-test   cargo fmt --check, clippy and the tests
+#
+# Images are pinned by digest; Dependabot (docker ecosystem) proposes the updates.
+
+# wam for both platforms. CGO-free, so cross-compiling needs nothing extra.
+FROM golang:1.27-alpine@sha256:eb61c3873c97416fff0116553fff65d67a3549f72e11d9758849a689cdd8b523 AS wam
+ENV CGO_ENABLED=0 GOFLAGS=-trimpath GOARCH=amd64
+WORKDIR /src
+COPY go.mod VERSION ./
+COPY cmd/ cmd/
+COPY internal/ internal/
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    ldflags="-s -w -X main.version=$(cat VERSION)" \
+    && GOOS=linux go build -ldflags "$ldflags" -o /out/linux/wam ./cmd/wam \
+    && GOOS=windows go build -ldflags "$ldflags" -o /out/windows/wam.exe ./cmd/wam
+
+# Debian bookworm's glibc (2.36) keeps the Linux binary running on older distributions.
+# The Windows binary is cross-compiled with MinGW.
+FROM rust:1.99-bookworm@sha256:e6f2cff35d0f309acf8433b4f05878ed77092602c5065cc81801177da0bb3a9c AS rust
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64 \
+    && rm -rf /var/lib/apt/lists/* \
+    && rustup component add clippy rustfmt \
+    && rustup target add x86_64-pc-windows-gnu
+WORKDIR /src
+COPY VERSION ./
+COPY gui/ gui/
+COPY --from=wam /out/ /wam/
+WORKDIR /src/gui
+ENV WAM_BIN=/wam/linux/wam
+
+# `make gui-test` runs this stage; a failure here fails `make gui` too.
+FROM rust AS test
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/src/gui/target,id=wam-gui-target \
+    cargo fmt --check \
+    && cargo clippy --locked --all-targets -- -D warnings \
+    && cargo test --locked \
+    && touch /tested
+
+FROM rust AS build
+COPY --from=test /tested /tested
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/src/gui/target,id=wam-gui-target \
+    cargo build --locked --release --target x86_64-unknown-linux-gnu \
+    && WAM_BIN=/wam/windows/wam.exe cargo build --locked --release --target x86_64-pc-windows-gnu \
+    && mkdir /out \
+    && cp target/x86_64-unknown-linux-gnu/release/wam-gui target/x86_64-pc-windows-gnu/release/wam-gui.exe /out/
+
+FROM scratch AS gui
+COPY --from=build /out/ /

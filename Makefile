@@ -22,7 +22,7 @@ AS_ME := --user $(shell id -u):$(shell id -g)
 TTY   := $(shell [ -t 0 ] && echo -t)
 
 .DEFAULT_GOAL := help
-.PHONY: help status update install remove search track wam image dist smoke test cover pre-commit hooks clean
+.PHONY: help status update install remove search track wam image dist gui gui-test smoke test cover pre-commit hooks clean
 
 help: ## Help: list every command
 	@awk 'match($$0, /^[a-zA-Z0-9_-]+:.*## /) { \
@@ -83,9 +83,13 @@ $(IMAGE_STAMP): $(SOURCES) Dockerfile VERSION
 
 image: $(IMAGE_STAMP) ## Build: build the wam image (wam:VERSION)
 
-dist: ## Build: export the static binary to build/dist/wam
+dist: ## Build: export the static binaries to build/dist (wam, wam.exe for Windows)
 	docker build --target binary --build-arg VERSION=$(VERSION) --output type=local,dest=$(BUILD)/dist .
-	@ls -l $(BUILD)/dist/wam
+	@ls -l $(BUILD)/dist/wam $(BUILD)/dist/wam.exe
+
+gui: ## Build: test, then export the desktop app to build/dist (wam-gui, wam-gui.exe)
+	docker build -f Dockerfile.gui --target gui --output type=local,dest=$(BUILD)/dist .
+	@ls -l $(BUILD)/dist/wam-gui $(BUILD)/dist/wam-gui.exe
 
 clean: ## Build: delete build/ (binaries, image stamps, tool caches)
 	rm -rf $(BUILD)
@@ -96,6 +100,9 @@ clean: ## Build: delete build/ (binaries, image stamps, tool caches)
 test: ## Development: go vet, go test and go test -race (always re-run, even if cached)
 	docker build --target test --no-cache-filter test --progress plain .
 	docker build --target race --no-cache-filter race --progress plain .
+
+gui-test: ## Development: cargo fmt --check, clippy and the GUI tests (always re-run)
+	docker build -f Dockerfile.gui --target test --no-cache-filter test --progress plain .
 
 cover: ## Development: test coverage report in build/coverage/ (coverage.html, .txt, .out)
 	docker build --target coverage --no-cache-filter cover --output type=local,dest=$(BUILD)/coverage .

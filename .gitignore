@@ -1,2 +1,4 @@
 # Binaries and every tool cache (prek, Go, golangci-lint) live here.
 build/
+# The GUI crate's cargo output.
+gui/target/

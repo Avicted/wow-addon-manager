@@ -246,12 +246,11 @@ pub fn in_rect<R>(ui: &mut Ui, rect: Rect, align: Align, add: impl FnOnce(&mut U
         Align::Max => Layout::right_to_left(Align::Center),
         _ => Layout::left_to_right(Align::Center),
     };
-    ui.scope_builder(UiBuilder::new().max_rect(rect).layout(layout), |ui| {
-        ui.set_clip_rect(rect.intersect(ui.clip_rect()));
-        ui.spacing_mut().item_spacing.x = 6.0;
-        add(ui)
-    })
-    .inner
+    // A bare child Ui, so the parent's layout cursor is never moved by the cell's content.
+    let mut child = ui.new_child(UiBuilder::new().max_rect(rect).layout(layout));
+    child.set_clip_rect(rect.intersect(ui.clip_rect()));
+    child.spacing_mut().item_spacing.x = 6.0;
+    add(&mut child)
 }
 
 /// A count in a rounded pill.

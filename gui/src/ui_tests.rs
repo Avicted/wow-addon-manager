@@ -214,6 +214,29 @@ fn tabs_switch_screens() {
 }
 
 #[test]
+fn find_rows_sit_exactly_one_row_apart() {
+    let hits: SearchData =
+        serde_json::from_value(json!({"query": "map", "wago_unavailable": false, "hits": [
+        {"title": "Alpha", "ref": "curse:1", "downloads": 1, "installed": true},
+        {"title": "Bravo", "ref": "curse:2", "downloads": 2, "installed": false},
+        {"title": "Charlie", "downloads": 3, "installed": false, "url": "https://example.com/c"},
+        {"title": "Delta", "ref": "curse:4", "downloads": 4, "installed": false}]}))
+        .unwrap();
+    let mut app = populated();
+    app.tab = Tab::Find;
+    app.find.query = "map".into();
+    app.find.phase = FindPhase::Results(hits);
+    let h = harness(app, Vec2::new(960.0, 640.0));
+    let ys: Vec<f32> = ["Alpha", "Bravo", "Charlie", "Delta"]
+        .iter()
+        .map(|t| h.get_by_label(t).rect().center().y)
+        .collect();
+    for pair in ys.windows(2) {
+        assert!((pair[1] - pair[0] - 36.0).abs() < 0.01, "row gaps: {ys:?}");
+    }
+}
+
+#[test]
 #[ignore = "renders with the GPU; run with --ignored to write target/ui-shots"]
 fn screenshots() {
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("target/ui-shots");

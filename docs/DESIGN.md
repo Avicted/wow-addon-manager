@@ -82,8 +82,9 @@ comparison is by release id.
 
 ## Running safely
 
-- One wam at a time: every command takes an exclusive `flock` on
-  `state.lock` in the data directory and fails at once if another holds it.
+- One wam at a time: every command takes an exclusive lock on
+  `state.lock` in the data directory (`flock` on Unix, a `CreateFile` with share mode 0 on
+  Windows) and fails at once if another holds it.
 - The first Ctrl-C (or SIGTERM) lets the addon being installed finish and skips
   the rest of `update`, so AddOns is never left half swapped; a second one ends
   wam. Staging directories a killed wam left beside AddOns are removed after an
@@ -112,5 +113,49 @@ writes stay the user's.
   name and searches Wago's list of Forever addons. A URL always works with
   `install`.
 - Wago downloads need an API key and aren't supported.
-- wam warns when WoW is running if run natively; in Docker it can't see the
-  game's process.
+- wam warns when WoW is running if run natively (it looks for `wow.exe` in `/proc`, or in the
+  Windows process list); in Docker it can't see the game's process.
+
+## Windows
+
+The core is stdlib-only Go and builds for Windows; the three OS-specific parts live in
+`_unix.go` / `_windows.go` files:
+
+- **Lock**: `state.Lock` (see above). A second wam gets `ErrLocked` on both systems.
+- **Cross-drive moves**: `install.moveDir` renames, and copies then deletes when the rename
+  crosses filesystems (`EXDEV` on Unix, `ERROR_NOT_SAME_DEVICE` on Windows). AddOns on `D:` with
+  backups on `C:` is common there.
+- **WoW running**: `install.WowRunning` scans `/proc` on Linux and a ToolHelp snapshot on Windows.
+- **Default paths**: AddOns is `C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns`;
+  state and backups are in `%LOCALAPPDATA%\wam`. `WAM_ADDONS_DIR` and `WAM_DATA_DIR` win everywhere.
+- Windows refuses to move folders that have open files, so updating while the game runs can fail
+  there; the rollback restores the old folders and wam warns before it starts.
+
+`go vet` runs with `GOOS=windows` in the Dockerfile's test stage, so this can't regress.
+
+## JSON mode and the desktop app
+
+`wam -json <command>` prints one JSON object per line on stdout and nothing else; the last line is
+always a `result`. Messages for people (`log`) become events too. The event shapes are documented
+at the top of `internal/cli/json.go`:
+
+| `event` | Meaning |
+|---|---|
+| `log` | `level` info or warning, `message`, optional `code` (`wow_running`) |
+| `checking` / `checked` | update checks starting, and each one finishing (`done` of `total`) |
+| `item` | per-addon progress of an update or install |
+| `result` | `ok`, `data` (the report of that command) or `error` `{message, code, ...}` |
+
+Error `code` is one of `locked`, `addons_dir`, `cancelled`, `rate_limit`, `http`, `network`,
+`bad_ref`, `not_found`, `in_use`, `disk_full`, `permission`, `other`, so a front end can explain
+it in plain words. Each command builds a report struct and renders it as text or JSON.
+
+**Cancel**: Windows has no SIGINT for a child process, so in JSON mode a `cancel` line on stdin
+does what the first Ctrl-C does: the addon being installed finishes and the rest are skipped. EOF
+on stdin is ignored, so scripts using `-json` are unaffected.
+
+`gui/` is a Rust (egui) app that embeds the `wam` binary for its own platform, unpacks it to
+`<data dir>/bin/wam-<version>[.exe]` and runs it as a subprocess with `-json`. It has no addon
+logic of its own, so the CLI and the app always do the same thing to the same `state.json`. A
+subprocess instead of FFI keeps Go's cgo out of the build and lets both run side by side. The
+plan and the design handover are in [GUI-PLAN.md](GUI-PLAN.md) and [gui-design/](gui-design/).

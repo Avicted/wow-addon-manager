@@ -2,10 +2,49 @@
 
 `wam` checks your World of Warcraft Forever addons for newer versions, updates
 them, and installs new ones from CurseForge and GitHub. Only builds made for the
-Forever client (1.60.x) are picked.
+Forever client (1.60.x) are picked. It comes as a desktop app and as a
+command-line tool, for Windows and Linux.
+
+![The Addons tab of the desktop app](docs/screenshots/addons.png)
+
+## Download
+
+Get the files for your system from the [latest release](../../releases/latest):
+
+| File | What |
+|---|---|
+| `wam-gui-<version>-windows-amd64.exe` | Desktop app for Windows |
+| `wam-gui-<version>-linux-amd64` | Desktop app for Linux |
+| `wam-<version>-windows-amd64.exe`, `wam-<version>-linux-amd64` | Command-line tool only |
+
+`SHA256SUMS` lists their checksums. The desktop app already contains the command-line tool, so
+you only need one of them.
+
+- **Windows:** the files aren't code-signed, so SmartScreen shows "Windows protected your PC":
+  choose *More info*, then *Run anyway*. Some antivirus tools may warn because the app unpacks
+  and runs its built-in `wam.exe`.
+- **Linux:** `chmod +x wam-gui-*-linux-amd64`, then run it. It needs OpenGL (Mesa) and either
+  Wayland or X11, which a desktop system already has.
+
+## Desktop app
+
+Open it, and the **Addons** tab shows what's installed and what has an update. **Update all**
+(or **Update** on one row) installs the new versions; **Cancel** lets the current addon finish
+and skips the rest. **Find addons** searches for and installs new ones, **Settings** holds the
+AddOns folder. After updating, `/reload` in game.
+
+On the first run it looks for your AddOns folder here, and asks you to pick it if it isn't:
+
+- Windows: `C:\Program Files (x86)\World of Warcraft\_forever_\Interface\AddOns`
+- Linux (Battle.net under Wine): `~/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_/Interface/AddOns`
+
+Replaced and removed addons are moved to a backups folder, never deleted: `%LOCALAPPDATA%\wam\backups`
+on Windows, `~/.local/share/wam/backups` on Linux. Your settings in `WTF/` are never touched.
+
+## Command line
 
 ```
-$ make status
+$ wam status
 ADDON         INSTALLED  LATEST           SOURCE        STATUS
 Auctionator   341 ~      346              curse:6124    update
 Leatrix Maps  1.60.28 ~  1.60.31-forever  curse:298842  update
@@ -17,21 +56,36 @@ Not tracked (wam doesn't know where these come from):
 2 updates available. Run: wam update
 ```
 
-## Quick start
+| Command | Does |
+|---|---|
+| `wam status` | Installed and latest version of every addon |
+| `wam update` | Update everything that has an update |
+| `wam update Questie -n` | Only the named addons; `-n` shows what would change |
+| `wam install <ref>` | Install a new addon |
+| `wam search <text>` | Find addons that have Forever builds |
+| `wam track <folder> <ref>` | Tell wam where an untracked folder comes from |
+| `wam remove <addon>` | Move an addon's folders to the backups |
 
-1. Install Docker and make.
-2. Clone this repository and `cd` into it.
-3. If WoW isn't in the default Battle.net/Wine location, point wam at your
-   AddOns folder:
+`<ref>` is a CurseForge URL, slug (`details`) or project id (`curse:61284`), or a GitHub
+repository (`github:Questie/Questie`). `wam -addons-dir <path> ...` sets the AddOns folder
+(or `WAM_ADDONS_DIR`). `wam -json <command>` prints machine-readable events, see
+[docs/DESIGN.md](docs/DESIGN.md).
+
+## Running from source
+
+Everything builds in Docker; the host needs only Docker and make. Clone this repository, then:
+
+1. If WoW isn't in the default Battle.net/Wine location, point wam at your AddOns folder:
    `export WAM_ADDONS_DIR="/path/to/_forever_/Interface/AddOns"`
-4. `make status` shows what's installed and what has an update.
-5. `make update` updates everything. Then `/reload` in game.
-6. `make search Q=details` finds an addon, `make install REF=details` installs it.
+2. `make status` shows what's installed, `make update` updates everything.
+3. `make search Q=details` finds an addon, `make install REF=details` installs it.
+4. `make gui` builds the desktop app for both systems into `build/dist/`.
 
-No Docker? With Go 1.27, `go install ./cmd/wam` gives you a `wam` binary, and
-each `make <command>` below is `wam <command>`.
+Without Docker, Go 1.27 works: `go install ./cmd/wam`, and each `make <command>` is `wam <command>`.
+`make` lists every target; the table below maps them.
 
-## Commands
+## Commands with make
+
 
 Run `make` for the full list.
 
@@ -53,8 +107,7 @@ a GitHub repository (`github:Questie/Questie`).
 - Rows marked `~` were installed before wam; they're compared by `.toc`
   version until wam updates them once.
 - Folders under "Not tracked" need `make track` so wam can update them.
-- Replaced and removed addons are backed up in `~/.local/share/wam/backups`
-  (override with `WAM_DATA_DIR`). `WTF/` (your settings) is never touched.
+- Backups live in the folder named above; override it with `WAM_DATA_DIR`.
 - Set `GITHUB_TOKEN` to raise GitHub's 60 requests an hour limit.
 - Output is colored on a terminal; set `NO_COLOR=1` to turn it off.
 

@@ -7,7 +7,11 @@ make test         go vet + go test, then go test -race, in the Dockerfile's test
 make cover        coverage report in build/coverage/ (coverage.html, coverage.txt)
 make image        the runtime image (wam:VERSION); its build runs the tests too
 make smoke        the image reports VERSION and can change a mounted AddOns directory
-make dist         static binary in build/dist/wam
+make dist         static binaries in build/dist (wam, wam.exe)
+make gui          test, then build/dist/wam-gui and build/dist/wam-gui.exe
+make gui-test     cargo fmt --check, clippy and the GUI tests
+make release-check  VERSION has a CHANGELOG entry (TAG=vX.Y.Z also checks the tag)
+make release-assets versioned binaries and SHA256SUMS in build/release
 make pre-commit   every hook on every file
 make hooks        install the pre-commit git hook
 ```
@@ -31,6 +35,36 @@ real one:
 cp -a ".../Interface" /tmp/wam-try/
 make status ADDONS_DIR=/tmp/wam-try/Interface/AddOns DATA_DIR=/tmp/wam-try/data
 ```
+
+## Desktop app
+
+`gui/` is a cargo crate. Its `build.rs` embeds `wam`: `$WAM_BIN` if set, otherwise it runs
+`go build` for the cargo target, so with Go installed a plain `cargo run` works:
+
+```
+cd gui
+WAM_ADDONS_DIR=/tmp/wam-try/Interface/AddOns WAM_DATA_DIR=/tmp/wam-try/data cargo run
+```
+
+`make gui` does the Linux and Windows builds in `Dockerfile.gui` (Debian bookworm for an old
+glibc; MinGW for Windows). The UI tests run headlessly; one test drives a real `wam` against a
+copy of an AddOns directory and is ignored by default:
+
+```
+WAM_E2E_DIR=/tmp/wam-try cargo test real_wam -- --ignored --nocapture
+```
+
+Windows can be checked under Wine: `cargo build --release --target x86_64-pc-windows-gnu` (with
+`gcc-mingw-w64` and the rustup target), then `wine target/x86_64-pc-windows-gnu/release/wam-gui.exe`.
+The design handover (tokens, mockups, copy) is in `docs/gui-design/`.
+
+## Releasing
+
+1. Set `VERSION` and date the `## [x.y.z]` entry in `CHANGELOG.md`; commit `chore(release): x.y.z`.
+2. `make release-check` (and optionally `make release-assets` to build everything locally).
+3. Tag and push: `git tag vX.Y.Z && git push origin master vX.Y.Z`.
+4. `.github/workflows/release.yml` checks the tag against `VERSION` and the changelog, runs the
+   tests, builds the four binaries and publishes a GitHub Release with `SHA256SUMS`.
 
 ## Hooks
 

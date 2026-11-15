@@ -4,6 +4,47 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-11-15
+
+### Features
+
+- **gui:** list addons with updates and errors first ([d52320f](https://github.com/Avicted/wow-addon-manager/commit/d52320fe859665a550207861aa7411863c38e36e))
+- **gui:** gold label on primary buttons ([c37499e](https://github.com/Avicted/wow-addon-manager/commit/c37499e31f106228a306d3c8b3e6d1b72d625c3a))
+- **gui:** show remove only on the hovered row ([18a5d7b](https://github.com/Avicted/wow-addon-manager/commit/18a5d7b012d70eb9c9b0d4954361260caef44aa0))
+- **gui:** filter long addon lists by name ([ace0ff3](https://github.com/Avicted/wow-addon-manager/commit/ace0ff31f094dee38aa595602630872dac745482))
+
+### Fixes
+
+- **gui:** match table header radius to its frame ([1c5681a](https://github.com/Avicted/wow-addon-manager/commit/1c5681a132acb6ec6902ab72d7d35fc1c45a15c1))
+- **gui:** draw button labels in their kind's colour ([7312e49](https://github.com/Avicted/wow-addon-manager/commit/7312e49b78065a5357d0323a51c7aa2bc53febf6))
+- **gui:** keep row remove reachable by keyboard ([09a0250](https://github.com/Avicted/wow-addon-manager/commit/09a0250a7c3b220e1c39b223963aeabe1e53bd05))
+- **gui:** style unidentified folders like the other settings headings ([c619292](https://github.com/Avicted/wow-addon-manager/commit/c619292e1389305c1e458d0e8b84510156ddd5fe))
+- **gui:** hide the strip icon when there is no message ([d617ce3](https://github.com/Avicted/wow-addon-manager/commit/d617ce3a97364a90b131a7761617759b4163f3fc))
+- **make:** decide docker -t in the recipe, so make check works in a terminal ([c4fcd34](https://github.com/Avicted/wow-addon-manager/commit/c4fcd34971c4f35d2466669bbb08657579ee5296))
+
+### Performance
+
+- **gui:** build release with 4 codegen units ([af6b04c](https://github.com/Avicted/wow-addon-manager/commit/af6b04c6fe92cb041e59fafd1d94d8c82201b22e))
+- **gui:** emit less debuginfo in dev builds ([fa5e515](https://github.com/Avicted/wow-addon-manager/commit/fa5e5156cc1805d3f82524a64f17fa8733e318ac))
+- **gui:** build the Linux and Windows binaries in parallel ([714a2cc](https://github.com/Avicted/wow-addon-manager/commit/714a2cc13744332f42898e077fdc729618ba0c29))
+- **make:** run the make check steps in parallel ([38a9e2e](https://github.com/Avicted/wow-addon-manager/commit/38a9e2e3ebcb04e4ea9355ecf8821e1eacc11ba0))
+
+### Documentation
+
+- **gui:** refresh the screenshot ([bd9ad57](https://github.com/Avicted/wow-addon-manager/commit/bd9ad57a3583b1743fb2f0100ea5f2e869a23bca))
+- **gui:** refresh the screenshot ([6c73f69](https://github.com/Avicted/wow-addon-manager/commit/6c73f69e770dd89779753cfc4a57501f8e596734))
+- **gui:** refresh the screenshot ([bfc1cc6](https://github.com/Avicted/wow-addon-manager/commit/bfc1cc6c18c16a550ea4d2a3612aa1e97363f9c7))
+- **readme:** add CI status and test coverage badges ([7d48f3f](https://github.com/Avicted/wow-addon-manager/commit/7d48f3fe3a4aa8a390095fb9b78d5b294d52f8e7))
+
+### Other changes
+
+- **gui:** refresh as a secondary button ([f156d6d](https://github.com/Avicted/wow-addon-manager/commit/f156d6df825de8660c6566db582962f48bf5e713))
+- **gui:** drop the unused success button ([c0fc193](https://github.com/Avicted/wow-addon-manager/commit/c0fc1938e3ffc032d46ae1fc2c752be80fae1371))
+- **gui:** stronger row stripes ([ef0b525](https://github.com/Avicted/wow-addon-manager/commit/ef0b52521b0cef8cf27ba307335906b98702ec81))
+- **gui:** drop the update count from the status strip ([5013846](https://github.com/Avicted/wow-addon-manager/commit/50138468d7600fed921dbaabc9978f2f70c5d914))
+- **gui:** drop the errors section, failed rows already sort first ([3136ec2](https://github.com/Avicted/wow-addon-manager/commit/3136ec22741f692eda744ff828e72434d27899ab))
+- publish the Go test coverage as a badge ([cac160d](https://github.com/Avicted/wow-addon-manager/commit/cac160d6b38ddbad39c2f9671f133d262cc0549c))
+
 ## [1.3.0] - 2026-11-15
 
 ### Features
@@ -102,6 +143,7 @@ First stable release.
 - The Windows app draws with DirectX 12 or Vulkan (Windows 10 or later); if the window
   doesn't open, use the command-line tool.
 - No macOS build, and the desktop app does not update itself.
+[1.4.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.0.0...v1.1.0

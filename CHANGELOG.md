@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-11-15
+
+### Features
+
+- **gui:** bundle the Cinzel display font ([47dce82](https://github.com/Avicted/wow-addon-manager/commit/47dce826cf8e5bed2f467a4a56e87dd47d61793f))
+- **gui:** warcraft colour palette ([d67291f](https://github.com/Avicted/wow-addon-manager/commit/d67291fc24171cfd36946ae47860604b623ed9c7))
+- **gui:** gold frames and display headings ([076f8e7](https://github.com/Avicted/wow-addon-manager/commit/076f8e7d2cd41829aab698c20fe06d6801eec12a))
+- **gui:** crimson and gold app icon ([63d580a](https://github.com/Avicted/wow-addon-manager/commit/63d580a2feca7e34d68770f837d5b80c900aa965))
+
+### Documentation
+
+- **gui:** describe the warcraft theme and refresh the screenshot ([63ce07c](https://github.com/Avicted/wow-addon-manager/commit/63ce07c9caebc2d605197c46872423ce63c8c6fa))
+
 ## [1.2.0] - 2026-11-15
 
 ### Features
@@ -89,5 +102,6 @@ First stable release.
 - The Windows app draws with DirectX 12 or Vulkan (Windows 10 or later); if the window
   doesn't open, use the command-line tool.
 - No macOS build, and the desktop app does not update itself.
+[1.3.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.0.0...v1.1.0

@@ -9,7 +9,10 @@ This folder holds the text half: `tokens.json`, `components.md`, `copy.md`, `flo
 A calm utility next to a game launcher. Most people open it, see "2 updates available", press
 **Update all** and close it. So the Addons screen leads with one summary line and one primary
 button, and anything rare (untracked, broken, failed checks) sits in collapsed sections under the
-table with a count pill. Dark first, neutral greys, one blue accent. No ornament.
+table with a count pill. Dark first, with a Warcraft look: leather browns, parchment text, gold accents and frames, a crimson
+primary button and Cinzel capitals for titles and tabs. Ornament stays light: gold lines, a bevel,
+a double-framed dialog, no textures. The HTML mockups in `mockups-src/` still show the earlier
+neutral grey and blue palette; `tokens.json` and the code are current.
 
 Everything maps onto cheap egui parts: `TopBottomPanel` (top bar, toolbar, bottom strip),
 `CentralPanel`, `egui_extras::TableBuilder` (striped, 32 px rows), `CollapsingHeader`-style
@@ -21,7 +24,7 @@ beyond the spinner.
 - Three destinations only (Addons, Find addons, Settings). A sidebar costs 160–200 px of width,
   and at the 720 px minimum the table needs every column.
 - Tabs live in the 44 px top bar next to the app name: `ui.selectable_label` in a horizontal row,
-  2 px accent underline on the active one. Keyboard: Ctrl+1/2/3, Tab order follows reading order.
+  2 px gold underline with a small diamond on the active one. Keyboard: Ctrl+1/2/3, Tab order follows reading order.
 - The Addons tab carries the addon count.
 - While an action runs, the tabs are disabled (opacity 0.45) — one action at a time.
 
@@ -43,14 +46,15 @@ Below 820 px wide the Source column is dropped (it stays in the row tooltip) and
 
 ## Fonts
 
-Inter (Regular, Medium, SemiBold) and JetBrains Mono Regular, both SIL OFL 1.1; bundle the TTFs
+Cinzel Bold for the app name, tabs and section and dialog titles; Inter (Regular, Medium, SemiBold)
+for everything else; JetBrains Mono Regular for versions. All SIL OFL 1.1; bundle the TTFs
 with `egui::FontDefinitions`. Mono is only for versions, paths and refs, so long strings like
 `v12.9.0-beta3-142-gabc1234` line up and truncate predictably.
 
 ## Scaling and keyboard
 
 All sizes are logical px, so 125 % / 150 % come from `pixels_per_point`. Every control is a real
-button or field; focus shows a 2 px `#7FB0FA` ring. Escape closes dialogs; Enter confirms.
+button or field; focus shows a 2 px `#FFD24A` ring. Escape closes dialogs; Enter confirms.
 Status never relies on colour alone: icon + word in every state.
 
 ## Light theme

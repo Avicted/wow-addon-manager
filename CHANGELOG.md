@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-11-15
+
+### Features
+
+- **status:** point out backups left by wam 1.0 ([c7d45f4](https://github.com/Avicted/wow-addon-manager/commit/c7d45f4403e818877cb5421f3fca598359723c12))
+
+### Fixes
+
+- **gui:** keep the data directory private ([670471d](https://github.com/Avicted/wow-addon-manager/commit/670471d61df349caf6b0ffc8aef967c4d7276093))
+- **state:** create the data directory private ([469d026](https://github.com/Avicted/wow-addon-manager/commit/469d026ae018ae65400619820df7384e6d39d76f))
+- **gui:** remove embedded wam binaries of older versions ([8c89c9c](https://github.com/Avicted/wow-addon-manager/commit/8c89c9c9b2d5c8381b486d640df8f140e4211f8b))
+- **cli:** refuse "." and ".." as folder names ([b803e4e](https://github.com/Avicted/wow-addon-manager/commit/b803e4e1ed15eb57ad9ded4d585d3abf7fc94bc7))
+
 ## [1.1.0] - 2026-11-15
 
 ### Breaking changes
@@ -76,4 +89,5 @@ First stable release.
 - The Windows app draws with DirectX 12 or Vulkan (Windows 10 or later); if the window
   doesn't open, use the command-line tool.
 - No macOS build, and the desktop app does not update itself.
+[1.2.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Avicted/wow-addon-manager/compare/v1.0.0...v1.1.0

@@ -31,10 +31,9 @@ eframe = { version = "0.37", default-features = false, features = ["wgpu"] }
 egui_kittest = { version = "0.37", features = ["wgpu", "snapshot"] }
 
 [profile.release]
-opt-level = 3
 lto = "thin"
 strip = true
-codegen-units = 1
+codegen-units = 4
 
 [build-dependencies]
 winresource = "0.1.34"

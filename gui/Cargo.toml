@@ -37,3 +37,11 @@ codegen-units = 4
 
 [build-dependencies]
 winresource = "0.1.34"
+
+# Dev builds keep file:line in backtraces but skip full debuginfo (and none for dependencies):
+# far less to emit and link on every edit.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false

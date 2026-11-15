@@ -687,6 +687,12 @@ impl App {
         self.wow_running = s.wow_running;
         self.first_run = None;
         self.rows = s.addons.clone();
+        // Updates and failed checks first, so they aren't buried in a long list.
+        self.rows.sort_by_key(|r| match r.status.as_str() {
+            "update" => 0,
+            "error" => 1,
+            _ => 2,
+        });
         let summary = if self.problem == Some(Problem::Network) {
             self.outcome = (
                 "Couldn\u{2019}t reach CurseForge or GitHub".into(),

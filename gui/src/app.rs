@@ -110,7 +110,6 @@ pub enum Problem {
 pub enum Section {
     Untracked,
     Broken,
-    Errors,
 }
 
 pub enum Dialog {

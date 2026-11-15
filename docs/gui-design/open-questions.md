@@ -1,7 +1,7 @@
 # Open questions / assumptions
 
-1. **Errors section vs. table.** A failed check already shows in its row (`Couldn't check` + reason).
-   The Errors section repeats them so they're findable in a 60-row list. Drop it if that feels redundant.
+1. **Errors section** was dropped: a failed check shows in its row (`Couldn't check` + reason, full
+   text on hover) and failed rows sort to the top of the table.
 2. **"Another wam is running"** has only copy, no dedicated mockup: same banner slot as the
    network error, error style, with **Try again**.
 3. **Row Update while another update runs** is hidden, not disabled, to keep rows calm.

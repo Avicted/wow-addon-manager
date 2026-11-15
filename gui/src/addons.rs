@@ -490,7 +490,7 @@ fn row(app: &App, ui: &mut Ui, i: usize, cols: &Columns, width: f32) -> Option<R
     action
 }
 
-// ---- Not tracked, Broken, Errors ----
+// ---- Not tracked, Broken ----
 
 struct SectionItem {
     name: String,
@@ -552,23 +552,10 @@ fn section_items(app: &App, s: Section) -> Vec<SectionItem> {
                 },
             })
             .collect(),
-        Section::Errors => app
-            .rows
-            .iter()
-            .filter_map(|r| {
-                let e = r.error.as_ref()?;
-                Some(SectionItem {
-                    name: r.name.clone(),
-                    extra: String::new(),
-                    note: copy::error(e, Some(&r.source)),
-                    action: None,
-                })
-            })
-            .collect(),
     }
 }
 
-const SECTIONS: [(Section, &str, &str, theme::Tint); 3] = [
+const SECTIONS: [(Section, &str, &str, theme::Tint); 2] = [
     (
         Section::Untracked,
         "Not tracked",
@@ -580,12 +567,6 @@ const SECTIONS: [(Section, &str, &str, theme::Tint); 3] = [
         "Broken",
         "Folders the game can\u{2019}t load.",
         theme::PILL_WARNING,
-    ),
-    (
-        Section::Errors,
-        "Errors",
-        "Update checks that failed.",
-        theme::PILL_ERROR,
     ),
 ];
 

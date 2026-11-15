@@ -58,11 +58,10 @@ shadow 0 12 32 rgba(0,0,0,.5), scrim `scrim`. Title 15/600. Folder list: mono 12
 box. Buttons right-aligned, Cancel first. Escape = Cancel, Enter = primary. Focus starts in the
 field (Track) or on Cancel (Remove).
 
-## Section header (Not tracked / Broken / Errors)
+## Section header (Not tracked / Broken)
 
 Height 32, fill `panel`, chevron 16, title 13/600, count pill (18 high, radius 9, 11/600), hint
-13/400 `muted_text` truncated. Pills: Not tracked #2A2F35/#C9CED4, Broken #3A2A14/#F0C979, Errors
-#3A1F1D/#F4A79F. Hidden entirely when its count is 0. Expanded list rows 36, indent 36, at most
+13/400 `muted_text` truncated. Pills: Not tracked #2A2F35/#C9CED4, Broken #3A2A14/#F0C979. Hidden entirely when its count is 0. Expanded list rows 36, indent 36, at most
 3 visible (108 px) then scrolls, so a long list never pushes the table off screen. One section open
 at a time.
 

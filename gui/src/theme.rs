@@ -79,11 +79,6 @@ pub const PILL_WARNING: Tint = Tint {
     border: hex(0x4A3210),
     text: hex(0xF5CF7A),
 };
-pub const PILL_ERROR: Tint = Tint {
-    bg: hex(0x45201B),
-    border: hex(0x45201B),
-    text: hex(0xF2A196),
-};
 
 pub const DISABLED_OPACITY: f32 = 0.45;
 

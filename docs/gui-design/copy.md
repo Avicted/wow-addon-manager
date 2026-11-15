@@ -33,7 +33,6 @@ Plain English, sentence case, no terminal commands. `{x}` = value. Curly quotes 
   - `Unpacked one folder too deep, so the game can't load it.`
   - `Has the version in its folder name, so the game can't load it.`
   - `Source unknown. Tell wam where it comes from, then fix it.`
-- `Errors` — `Update checks that failed.`
 
 ## Banners
 - Game running: `World of Warcraft is running. Updated addons load after you type /reload in the game, or restart it.`

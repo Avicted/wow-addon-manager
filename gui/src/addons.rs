@@ -336,7 +336,7 @@ fn table(app: &mut App, ui: &mut Ui, below: f32) {
     let guessed = !app.updating()
         && !app.check_failed()
         && app.rows.iter().any(|r| r.adopted && r.error.is_none());
-    Frame::new().stroke(Stroke::new(1.0, theme::BORDER)).corner_radius(6).show(ui, |ui| {
+    Frame::new().stroke(Stroke::new(1.0, theme::BORDER)).corner_radius(3).show(ui, |ui| {
         let width = ui.available_width();
         let cols = columns(width);
         ui.spacing_mut().item_spacing.y = 0.0;
@@ -609,7 +609,7 @@ fn sections(app: &mut App, ui: &mut Ui) {
     let mut action = None;
     Frame::new()
         .stroke(Stroke::new(1.0, theme::BORDER))
-        .corner_radius(6)
+        .corner_radius(3)
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
             let width = ui.available_width();
@@ -744,7 +744,7 @@ pub fn dialogs(app: &mut App, ctx: &egui::Context) {
     let frame = Frame::new()
         .fill(theme::RAISED)
         .stroke(Stroke::new(1.0, theme::DIALOG_BORDER))
-        .corner_radius(8)
+        .corner_radius(4)
         .inner_margin(20)
         .shadow(egui::Shadow {
             offset: [0, 12],
@@ -845,7 +845,7 @@ fn folder_list(ui: &mut Ui, folders: &[String]) {
     Frame::new()
         .fill(theme::BACKGROUND)
         .stroke(Stroke::new(1.0, theme::BORDER))
-        .corner_radius(4)
+        .corner_radius(2)
         .inner_margin(Margin::symmetric(12, 8))
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
@@ -882,7 +882,7 @@ fn first_run(app: &mut App, ui: &mut Ui, path: &str) {
         Frame::new()
             .fill(theme::PANEL)
             .stroke(Stroke::new(1.0, theme::BORDER))
-            .corner_radius(8)
+            .corner_radius(4)
             .inner_margin(28)
             .show(ui, |ui| {
                 ui.set_width(width - 56.0);
@@ -899,7 +899,7 @@ fn first_run(app: &mut App, ui: &mut Ui, path: &str) {
                     Frame::new()
                         .fill(theme::LOG_BG)
                         .stroke(Stroke::new(1.0, theme::BORDER))
-                        .corner_radius(4)
+                        .corner_radius(2)
                         .inner_margin(Margin::symmetric(10, 8))
                         .show(ui, |ui| {
                             ui.set_width(ui.available_width());

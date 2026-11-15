@@ -14,45 +14,46 @@ const fn hex(rgb: u32) -> Color32 {
     Color32::from_rgb((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8)
 }
 
-pub const BACKGROUND: Color32 = hex(0x16191C);
-pub const PANEL: Color32 = hex(0x1A1D21);
-pub const ROW_STRIPE: Color32 = hex(0x1A1D21);
-pub const RAISED: Color32 = hex(0x1F2327);
-pub const CONTROL: Color32 = hex(0x262A30);
-pub const BORDER: Color32 = hex(0x2E3339);
-pub const CONTROL_BORDER: Color32 = hex(0x3A4048);
-pub const TEXT: Color32 = hex(0xE7E9EC);
-pub const TEXT_SECONDARY: Color32 = hex(0xC9CED4);
-pub const MUTED: Color32 = hex(0x9BA3AD);
-pub const FAINT: Color32 = hex(0x8A929C);
-pub const ACCENT_FILL: Color32 = hex(0x2F6FD0);
-pub const ACCENT_TEXT: Color32 = hex(0x7FB0FA);
-pub const OK: Color32 = hex(0x5BC58A);
-pub const WARNING: Color32 = hex(0xE8B04B);
-pub const ERROR: Color32 = hex(0xF07A6E);
-pub const DANGER_FILL: Color32 = hex(0xB83A30);
-pub const SELECTION: Color32 = hex(0x23426E);
-pub const FOCUS: Color32 = hex(0x7FB0FA);
-pub const TABLE_HEADER: Color32 = hex(0x1E2226);
-pub const ROW_HOVER: Color32 = hex(0x22272D);
-pub const LOG_BG: Color32 = hex(0x121417);
-pub const FIELD_BG: Color32 = hex(0x121417);
-pub const FIELD_HOVER_BORDER: Color32 = hex(0x4A515A);
-pub const FIELD_ERROR_BORDER: Color32 = hex(0xB5544B);
-pub const PROGRESS_TRACK: Color32 = hex(0x2A2F35);
-pub const PROGRESS_FILL: Color32 = hex(0x4C8DF0);
-pub const DIALOG_BORDER: Color32 = hex(0x343A41);
-pub const LIST_DIVIDER: Color32 = hex(0x23272C);
-pub const SCRIM: Color32 = Color32::from_rgba_premultiplied(5, 6, 7, 158); // rgba(8,10,12,.62)
-pub const PRIMARY_HOVER: Color32 = hex(0x3A7BDD);
-pub const PRIMARY_PRESSED: Color32 = hex(0x2860B8);
-pub const SECONDARY_HOVER: Color32 = hex(0x2D3238);
-pub const SECONDARY_PRESSED: Color32 = hex(0x1F2328);
-pub const SUCCESS_FILL: Color32 = hex(0x2A7A4B);
-pub const SUCCESS_HOVER: Color32 = hex(0x338A58);
-pub const SUCCESS_PRESSED: Color32 = hex(0x23653D);
-pub const DANGER_HOVER: Color32 = hex(0xC4463B);
-pub const DANGER_PRESSED: Color32 = hex(0xA03228);
+pub const BACKGROUND: Color32 = hex(0x120E0A);
+pub const PANEL: Color32 = hex(0x1A140E);
+pub const ROW_STRIPE: Color32 = hex(0x17120C);
+pub const RAISED: Color32 = hex(0x221A12);
+pub const CONTROL: Color32 = hex(0x2A2016);
+pub const BORDER: Color32 = hex(0x3D2F1E);
+pub const CONTROL_BORDER: Color32 = hex(0x5A4528);
+pub const TEXT: Color32 = hex(0xEDE3CF);
+pub const TEXT_SECONDARY: Color32 = hex(0xD2C4A8);
+pub const MUTED: Color32 = hex(0xA8977A);
+pub const FAINT: Color32 = hex(0x8E7E64);
+pub const ACCENT_FILL: Color32 = hex(0x8B1A12);
+pub const ACCENT_TEXT: Color32 = hex(0xFFD24A);
+pub const OK: Color32 = hex(0x6FCF5A);
+pub const WARNING: Color32 = hex(0xF0A030);
+pub const ERROR: Color32 = hex(0xE8584A);
+pub const DANGER_FILL: Color32 = hex(0x7A1F1F);
+pub const SELECTION: Color32 = hex(0x4A3516);
+pub const GOLD: Color32 = hex(0xC9A34A);
+pub const FOCUS: Color32 = hex(0xFFD24A);
+pub const TABLE_HEADER: Color32 = hex(0x1F1810);
+pub const ROW_HOVER: Color32 = hex(0x2A2015);
+pub const LOG_BG: Color32 = hex(0x0D0A07);
+pub const FIELD_BG: Color32 = hex(0x0D0A07);
+pub const FIELD_HOVER_BORDER: Color32 = hex(0x7A6035);
+pub const FIELD_ERROR_BORDER: Color32 = hex(0xB5463B);
+pub const PROGRESS_TRACK: Color32 = hex(0x2E2418);
+pub const PROGRESS_FILL: Color32 = hex(0xD4A437);
+pub const DIALOG_BORDER: Color32 = hex(0xB8913E);
+pub const LIST_DIVIDER: Color32 = hex(0x2A2016);
+pub const SCRIM: Color32 = Color32::from_rgba_premultiplied(5, 4, 2, 158); // rgba(8,6,4,.62)
+pub const PRIMARY_HOVER: Color32 = hex(0xA3231A);
+pub const PRIMARY_PRESSED: Color32 = hex(0x6E140E);
+pub const SECONDARY_HOVER: Color32 = hex(0x33271B);
+pub const SECONDARY_PRESSED: Color32 = hex(0x1C150E);
+pub const SUCCESS_FILL: Color32 = hex(0x2F6B2A);
+pub const SUCCESS_HOVER: Color32 = hex(0x3A7D33);
+pub const SUCCESS_PRESSED: Color32 = hex(0x265722);
+pub const DANGER_HOVER: Color32 = hex(0x8E2A26);
+pub const DANGER_PRESSED: Color32 = hex(0x621818);
 
 /// A banner's or pill's background, border and text colours.
 pub struct Tint {
@@ -62,29 +63,29 @@ pub struct Tint {
 }
 
 pub const BANNER_WARNING: Tint = Tint {
-    bg: hex(0x2A2416),
-    border: hex(0x4A3D1F),
-    text: hex(0xF0C979),
+    bg: hex(0x2E2210),
+    border: hex(0x5A4420),
+    text: hex(0xF5CF7A),
 };
 pub const BANNER_ERROR: Tint = Tint {
-    bg: hex(0x2C1A19),
-    border: hex(0x55302C),
-    text: hex(0xF4A79F),
+    bg: hex(0x2E1714),
+    border: hex(0x6A2E26),
+    text: hex(0xF2A196),
 };
 pub const PILL_NEUTRAL: Tint = Tint {
-    bg: hex(0x2A2F35),
-    border: hex(0x2A2F35),
-    text: hex(0xC9CED4),
+    bg: hex(0x2E2418),
+    border: hex(0x2E2418),
+    text: hex(0xD2C4A8),
 };
 pub const PILL_WARNING: Tint = Tint {
-    bg: hex(0x3A2A14),
-    border: hex(0x3A2A14),
-    text: hex(0xF0C979),
+    bg: hex(0x4A3210),
+    border: hex(0x4A3210),
+    text: hex(0xF5CF7A),
 };
 pub const PILL_ERROR: Tint = Tint {
-    bg: hex(0x3A1F1D),
-    border: hex(0x3A1F1D),
-    text: hex(0xF4A79F),
+    bg: hex(0x45201B),
+    border: hex(0x45201B),
+    text: hex(0xF2A196),
 };
 
 pub const DISABLED_OPACITY: f32 = 0.45;
@@ -178,7 +179,7 @@ pub fn apply(ctx: &egui::Context) {
         v.panel_fill = BACKGROUND;
         v.window_fill = RAISED;
         v.window_stroke = Stroke::new(1.0, DIALOG_BORDER);
-        v.window_corner_radius = CornerRadius::same(8);
+        v.window_corner_radius = CornerRadius::same(4);
         v.window_shadow = Shadow {
             offset: [0, 12],
             blur: 32,
@@ -193,7 +194,7 @@ pub fn apply(ctx: &egui::Context) {
         v.error_fg_color = ERROR;
         v.selection.bg_fill = SELECTION;
         v.selection.stroke = Stroke::new(1.0, PROGRESS_FILL); // focused text field border
-        let r = CornerRadius::same(4);
+        let r = CornerRadius::same(2);
         let w = &mut v.widgets;
         w.noninteractive.bg_fill = PANEL;
         w.noninteractive.weak_bg_fill = PANEL;

@@ -195,7 +195,7 @@ impl Widget for Button<'_> {
             let p = ui.painter();
             p.rect(
                 rect,
-                CornerRadius::same(4),
+                CornerRadius::same(2),
                 fill,
                 Stroke::new(1.0, border),
                 StrokeKind::Inside,
@@ -243,7 +243,7 @@ fn pick(pressed: bool, hovered: bool, normal: Color32, hover: Color32, press: Co
 pub fn focus_ring(ui: &Ui, rect: Rect) {
     ui.painter().rect_stroke(
         rect.expand(2.0),
-        CornerRadius::same(6),
+        CornerRadius::same(3),
         Stroke::new(2.0, theme::FOCUS),
         StrokeKind::Outside,
     );
@@ -358,7 +358,7 @@ pub fn banner(ui: &mut Ui, tint: &Tint, icon_: Icon, message: &str) {
     egui::Frame::new()
         .fill(tint.bg)
         .stroke(Stroke::new(1.0, tint.border))
-        .corner_radius(6)
+        .corner_radius(3)
         .inner_margin(egui::Margin::symmetric(12, 8))
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
@@ -405,7 +405,7 @@ pub fn field_with(
             ui.painter().rect_stroke(
                 r.rect.expand(1.0),
                 CornerRadius::same(5),
-                Stroke::new(2.0, Color32::from_rgba_unmultiplied(76, 141, 240, 90)),
+                Stroke::new(2.0, Color32::from_rgba_unmultiplied(212, 164, 55, 90)),
                 StrokeKind::Outside,
             );
         }

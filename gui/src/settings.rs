@@ -186,7 +186,7 @@ fn backups(app: &mut App, ui: &mut Ui) {
         Frame::new()
             .fill(theme::PANEL)
             .stroke(Stroke::new(1.0, theme::BORDER))
-            .corner_radius(4)
+            .corner_radius(2)
             .inner_margin(Margin::symmetric(10, 7))
             .show(ui, |ui| {
                 ui.set_width(w - 20.0);

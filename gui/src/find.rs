@@ -67,7 +67,7 @@ fn search_form(app: &mut App, ui: &mut Ui) {
 }
 
 fn results(app: &mut App, ui: &mut Ui, height: f32) {
-    Frame::new().stroke(Stroke::new(1.0, theme::BORDER)).corner_radius(6).show(ui, |ui| {
+    Frame::new().stroke(Stroke::new(1.0, theme::BORDER)).corner_radius(3).show(ui, |ui| {
         ui.set_min_size(Vec2::new(ui.available_width(), height - 2.0));
         let width = ui.available_width();
         match &app.find.phase {
@@ -245,7 +245,7 @@ fn link_form(app: &mut App, ui: &mut Ui) {
     Frame::new()
         .fill(theme::PANEL)
         .stroke(Stroke::new(1.0, theme::BORDER))
-        .corner_radius(6)
+        .corner_radius(3)
         .inner_margin(Margin::symmetric(16, 14))
         .show(ui, |ui| {
             ui.set_width(ui.available_width());

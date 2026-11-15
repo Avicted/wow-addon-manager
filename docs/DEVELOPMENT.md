@@ -112,6 +112,11 @@ on such a commit.
 commit subjects follow Conventional Commits and that the push's version bumps came from
 `make release` (`make version-check`). `release.yml` runs on a `v*` tag.
 
+After the checks pass on master, a `coverage` job runs `make cover` and force-pushes
+`coverage.json` (built by `scripts/coverage-badge.sh`) to a single-commit orphan `badges` branch.
+The README's coverage badge reads that file through shields.io, so it needs a public repository
+and says "invalid" until the first master push has run the job. Coverage is for the Go code only.
+
 Jobs prefer the self-hosted runner (labels `self-hosted`, `linux`), which needs Docker, `make`
 and a user allowed to run `docker`. GitHub cannot fall back by itself when that runner is
 offline: set the repository variable `CI_RUNNER` to `"ubuntu-latest"` (with the quotes; Settings,

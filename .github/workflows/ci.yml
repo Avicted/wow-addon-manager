@@ -63,3 +63,37 @@ jobs:
             | docker run --rm -i ghcr.io/avicted/conventional-commits:v1.1.0@sha256:aa84170cf7a56d5c2fa322c70ae7462e11ef0ef6eb9a740afb29887b1183d485
           # Every VERSION change must be a `make release` commit.
           make version-check RANGE="$range"
+
+  # Publishes the Go test coverage as a shields.io endpoint file on the `badges` branch, which
+  # the README badge reads. Only master pushes run it, after the checks passed. The branch is
+  # one orphan commit, replaced each time, so it never grows. A push made with GITHUB_TOKEN
+  # does not start another workflow run.
+  coverage:
+    name: Coverage badge
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: check
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '["self-hosted", "linux"]') }}
+    timeout-minutes: 15
+    permissions:
+      contents: write # push the badges branch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: make cover
+      - name: Publish the badge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          out=$(mktemp -d)
+          scripts/coverage-badge.sh build/coverage/coverage.txt > "$out/coverage.json"
+          cat "$out/coverage.json"
+          cd "$out"
+          git init -q -b badges
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add coverage.json
+          git commit -q -m "chore(badges): coverage"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git" badges

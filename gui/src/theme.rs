@@ -16,7 +16,7 @@ const fn hex(rgb: u32) -> Color32 {
 
 pub const BACKGROUND: Color32 = hex(0x120E0A);
 pub const PANEL: Color32 = hex(0x1A140E);
-pub const ROW_STRIPE: Color32 = hex(0x17120C);
+pub const ROW_STRIPE: Color32 = hex(0x1C160F);
 pub const RAISED: Color32 = hex(0x221A12);
 pub const CONTROL: Color32 = hex(0x2A2016);
 pub const BORDER: Color32 = hex(0x3D2F1E);

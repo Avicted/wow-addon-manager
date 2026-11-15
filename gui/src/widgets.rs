@@ -82,7 +82,7 @@ impl<'a> Button<'a> {
             ui.painter().layout_no_wrap(
                 self.label.to_string(),
                 font(size, Weight::Medium),
-                Color32::WHITE,
+                Color32::PLACEHOLDER,
             )
         });
         let text_w = galley.as_ref().map_or(0.0, |g| g.size().x);

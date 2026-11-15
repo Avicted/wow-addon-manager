@@ -49,9 +49,6 @@ pub const PRIMARY_HOVER: Color32 = hex(0xA3231A);
 pub const PRIMARY_PRESSED: Color32 = hex(0x6E140E);
 pub const SECONDARY_HOVER: Color32 = hex(0x33271B);
 pub const SECONDARY_PRESSED: Color32 = hex(0x1C150E);
-pub const SUCCESS_FILL: Color32 = hex(0x2F6B2A);
-pub const SUCCESS_HOVER: Color32 = hex(0x3A7D33);
-pub const SUCCESS_PRESSED: Color32 = hex(0x265722);
 pub const DANGER_HOVER: Color32 = hex(0x8E2A26);
 pub const DANGER_PRESSED: Color32 = hex(0x621818);
 

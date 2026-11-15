@@ -246,22 +246,31 @@ pub fn install_desktop_entry(data_home: &Path, exe: &Path) -> io::Result<Vec<Pat
 }
 
 /// Writes the embedded wam to `<data dir>/bin/wam-<version>` unless it is already there,
-/// and returns its path.
+/// removes the copies of other versions, and returns its path.
 pub fn unpack(data_dir: &Path) -> io::Result<PathBuf> {
     let dir = data_dir.join("bin");
     fs::create_dir_all(&dir)?;
-    let path = dir.join(format!("wam-{VERSION}{}", std::env::consts::EXE_SUFFIX));
-    if fs::read(&path).ok().as_deref() == Some(EMBEDDED) {
-        return Ok(path);
+    let name = format!("wam-{VERSION}{}", std::env::consts::EXE_SUFFIX);
+    let path = dir.join(&name);
+    if fs::read(&path).ok().as_deref() != Some(EMBEDDED) {
+        let tmp = dir.join(format!("{name}.tmp"));
+        fs::write(&tmp, EMBEDDED)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&tmp, fs::Permissions::from_mode(0o755))?;
+        }
+        fs::rename(&tmp, &path)?;
     }
-    let tmp = path.with_extension("tmp");
-    fs::write(&tmp, EMBEDDED)?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(&tmp, fs::Permissions::from_mode(0o755))?;
+    // Errors are ignored: on Windows an older app that is still running holds its file open.
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for e in entries.flatten() {
+            if e.file_name() != name.as_str() && e.file_name().to_string_lossy().starts_with("wam-")
+            {
+                let _ = fs::remove_file(e.path());
+            }
+        }
     }
-    fs::rename(&tmp, &path)?;
     Ok(path)
 }
 
@@ -405,6 +414,30 @@ mod tests {
         assert!(install_desktop_entry(&dir, exe).unwrap().is_empty());
         let moved = install_desktop_entry(&dir, Path::new("/usr/bin/wam-gui")).unwrap();
         assert_eq!(moved, vec![dir.join("applications/wam.desktop")]);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn unpack_removes_other_versions_only() {
+        let dir = std::env::temp_dir().join(format!("wam-unpack-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        let bin = dir.join("bin");
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(bin.join("wam-0.9.0"), b"old").unwrap();
+        fs::write(bin.join("other"), b"x").unwrap();
+        let path = unpack(&dir).unwrap();
+        let mut left: Vec<_> = fs::read_dir(&bin)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        left.sort();
+        let mut want = vec![
+            path.file_name().unwrap().to_string_lossy().into_owned(),
+            "other".to_string(),
+        ];
+        want.sort();
+        assert_eq!(left, want);
+        assert_eq!(fs::read(&path).unwrap(), EMBEDDED);
         fs::remove_dir_all(&dir).unwrap();
     }
 

@@ -571,3 +571,32 @@ fn real_wam() {
         h.state().outcome
     );
 }
+
+#[test]
+fn long_lists_get_a_name_filter_that_hides_other_rows() {
+    let mut h = harness(populated(), Vec2::new(960.0, 640.0));
+    assert!(h.query_by_label("Bagnon").is_some());
+    assert!(h.query_by_label("Bartender4").is_some());
+    h.state_mut().filter = "BAG".into();
+    h.run_steps(2);
+    assert!(h.query_by_label("Bagnon").is_some());
+    assert!(h.query_by_label("Bartender4").is_none());
+    h.state_mut().filter = "zzz".into();
+    h.run_steps(2);
+    assert!(
+        h.query_by_label("No addons match \u{201c}zzz\u{201d}")
+            .is_some()
+    );
+}
+
+#[test]
+fn short_lists_have_no_filter() {
+    let mut app = populated();
+    app.rows.truncate(5);
+    app.filter = "zzz".into();
+    let mut h = harness(app, Vec2::new(960.0, 640.0));
+    h.run_steps(2);
+    // The filter is ignored while its box is hidden.
+    let first = h.state().rows[0].name.clone();
+    assert!(h.query_by_label(&first).is_some());
+}

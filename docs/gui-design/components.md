@@ -21,6 +21,9 @@ One primary button per view. Danger is the only other filled button.
 
 ## Table row
 
+With more than 10 addons a 32 px filter field (search icon, "Filter addons by name", 280 wide) sits above
+the table and matches names ignoring case; Escape clears it. No match shows "No addons match “x”".
+
 Height 32, cells padding 0 12, alternating `background` / `row_stripe`. Hover `row_hover`.
 Selected (keyboard cursor) `selection`. Focused: inset 2 px ring. Name 13/500, versions mono 12,
 Source `muted_text`. Long text truncates with "…", full text in tooltip. Guessed version: `341 ~`,

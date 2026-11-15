@@ -171,6 +171,8 @@ pub struct App {
     /// The AddOns folder wam couldn't find; the first-run card replaces the table.
     pub first_run: Option<String>,
     pub open_section: Option<Section>,
+    /// The Addons tab's name filter; shown only for long lists.
+    pub filter: String,
     pub dialog: Option<Dialog>,
 
     pub outcome: (String, Tone),
@@ -206,6 +208,7 @@ impl App {
             problem: None,
             first_run: None,
             open_section: None,
+            filter: String::new(),
             dialog: None,
             outcome: (String::new(), Tone::Muted),
             log: Vec::new(),

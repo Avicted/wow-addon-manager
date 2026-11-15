@@ -50,6 +50,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             })
             .show(ui, |ui| {
                 banners(app, ui);
+                filter_bar(app, ui);
                 table(app, ui, below);
                 if show_sections {
                     ui.add_space(10.0);
@@ -331,6 +332,42 @@ fn pad(r: Rect, px: f32) -> Rect {
     r.shrink2(Vec2::new(px, 0.0))
 }
 
+/// More addons than this get a filter box above the table.
+const FILTER_FROM: usize = 10;
+
+fn filtering(app: &App) -> bool {
+    app.rows.len() > FILTER_FROM
+}
+
+fn filter_bar(app: &mut App, ui: &mut Ui) {
+    if !filtering(app) {
+        return;
+    }
+    let edit = egui::TextEdit::singleline(&mut app.filter)
+        .id_salt("filter")
+        .font(theme::font(13.0, Weight::Regular));
+    let r = widgets::field_with(ui, edit, "Filter addons by name", 280.0, false, 32);
+    Icon::Search.paint(
+        ui,
+        Rect::from_min_size(
+            pos2(r.rect.left() + 10.0, r.rect.center().y - 8.0),
+            Vec2::splat(16.0),
+        ),
+        theme::MUTED,
+    );
+    if r.has_focus() && ui.input(|i| i.key_pressed(Key::Escape)) {
+        app.filter.clear();
+    }
+}
+
+/// Indices of the rows whose name contains the filter, ignoring case.
+fn visible_rows(app: &App) -> Vec<usize> {
+    let needle = app.filter.trim().to_lowercase();
+    (0..app.rows.len())
+        .filter(|&i| !filtering(app) || app.rows[i].name.to_lowercase().contains(&needle))
+        .collect()
+}
+
 /// The table, leaving `below` points free under it.
 fn table(app: &mut App, ui: &mut Ui, below: f32) {
     let guessed = !app.updating()
@@ -354,18 +391,28 @@ fn table(app: &mut App, ui: &mut Ui, below: f32) {
         let footer = if guessed { 26.0 } else { 0.0 };
         let rows_h = (ui.available_height() - footer - below).max(64.0);
         let mut action = None;
-        ScrollArea::vertical().id_salt("addons").auto_shrink([false, false]).max_height(rows_h).min_scrolled_height(rows_h).show_rows(
-            ui,
-            32.0,
-            app.rows.len(),
-            |ui, range| {
-                for i in range {
-                    if let Some(a) = row(app, ui, i, &cols, width) {
-                        action = Some(a);
+        let visible = visible_rows(app);
+        if visible.is_empty() {
+            let (r, _) = ui.allocate_exact_size(Vec2::new(width, rows_h), Sense::hover());
+            let msg = format!("No addons match \u{201c}{}\u{201d}", app.filter.trim());
+            ui.scope_builder(
+                egui::UiBuilder::new().max_rect(r).layout(Layout::centered_and_justified(egui::Direction::TopDown)),
+                |ui| ui.label(text(msg, 13.0, Weight::Regular, theme::MUTED)),
+            );
+        } else {
+            ScrollArea::vertical().id_salt("addons").auto_shrink([false, false]).max_height(rows_h).min_scrolled_height(rows_h).show_rows(
+                ui,
+                32.0,
+                visible.len(),
+                |ui, range| {
+                    for pos in range {
+                        if let Some(a) = row(app, ui, visible[pos], pos, &cols, width) {
+                            action = Some(a);
+                        }
                     }
-                }
-            },
-        );
+                },
+            );
+        }
         if guessed {
             let (r, _) = ui.allocate_exact_size(Vec2::new(width, footer), Sense::hover());
             ui.painter().rect_filled(r, CornerRadius { nw: 0, ne: 0, sw: 3, se: 3 }, theme::PANEL);
@@ -390,10 +437,17 @@ enum RowAction {
     Remove(String, Vec<String>),
 }
 
-fn row(app: &App, ui: &mut Ui, i: usize, cols: &Columns, width: f32) -> Option<RowAction> {
+fn row(
+    app: &App,
+    ui: &mut Ui,
+    i: usize,
+    pos: usize,
+    cols: &Columns,
+    width: f32,
+) -> Option<RowAction> {
     let r = &app.rows[i];
     let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 32.0), Sense::hover());
-    let base = if i % 2 == 1 {
+    let base = if pos % 2 == 1 {
         theme::ROW_STRIPE
     } else {
         theme::BACKGROUND

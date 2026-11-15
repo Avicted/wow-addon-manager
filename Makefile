@@ -183,7 +183,12 @@ clean: ## Build: delete build/ (binaries, image stamps, tool caches)
 # Development.
 
 # Everything CI runs, in one go. Each step is its own target, so a failure names the step.
-check: test gui-test smoke dist gui pre-commit release-check version-check ## Development: run everything CI runs (tests, GUI, smoke, builds, hooks, release and version checks)
+# The steps are independent, so they run in parallel (-j); -O prints each step's output as one
+# block when it finishes instead of interleaving the logs.
+CHECKS := test gui-test smoke dist gui pre-commit release-check version-check
+
+check: ## Development: run everything CI runs, in parallel (tests, GUI, smoke, builds, hooks, release and version checks)
+	@$(MAKE) --no-print-directory -j -O $(CHECKS)
 
 test: ## Development: go vet, go test and go test -race (always re-run, even if cached)
 	docker build --target test --no-cache-filter test --progress plain .

@@ -729,7 +729,7 @@ impl App {
                     );
                 }
             }
-            self.outcome = (format!("Last check {now} \u{b7} {summary}"), Tone::Muted);
+            self.outcome = (format!("Last check {now}"), Tone::Muted);
         }
         if rescan && let Some(before) = self.untracked_before_rescan.take() {
             let after: usize = s.untracked.iter().map(|u| u.folders.len()).sum();
@@ -831,11 +831,7 @@ mod tests {
         );
         assert_eq!(a.rows.len(), 2);
         assert_eq!(a.updates(), 1);
-        assert!(
-            a.outcome.0.ends_with("1 update available"),
-            "{}",
-            a.outcome.0
-        );
+        assert!(a.outcome.0.starts_with("Last check "), "{}", a.outcome.0);
         assert_eq!(a.queue.len(), 0);
     }
 

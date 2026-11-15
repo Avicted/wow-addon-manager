@@ -467,17 +467,15 @@ fn row(app: &App, ui: &mut Ui, i: usize, cols: &Columns, width: f32) -> Option<R
     let mut action = None;
     in_rect(ui, pad(*c.next()?, 8.0), Align::Max, |ui| {
         ui.spacing_mut().item_spacing.x = 4.0;
-        // Remove shows only under the pointer; the 26 px stays reserved so columns don't shift.
-        if hovered {
-            let remove = Button::new(Kind::IconOnly, "")
-                .icon(Icon::Trash)
-                .enabled(!app.busy());
-            let tip = format!("Remove {}", r.name);
-            if ui.add(remove.tooltip(&tip)).clicked() {
-                action = Some(RowAction::Remove(r.name.clone(), r.folders.clone()));
-            }
-        } else {
-            ui.add_space(26.0);
+        // Remove is drawn only under the pointer (or with focus); it keeps its 26 px so columns
+        // don't shift, and Tab can still reach it.
+        let remove = Button::new(Kind::IconOnly, "")
+            .icon(Icon::Trash)
+            .enabled(!app.busy())
+            .hidden(!hovered);
+        let tip = format!("Remove {}", r.name);
+        if ui.add(remove.tooltip(&tip)).clicked() {
+            action = Some(RowAction::Remove(r.name.clone(), r.folders.clone()));
         }
         let updated = item.is_some_and(|i| i.state == "updated");
         if r.status == "update"

@@ -28,6 +28,7 @@ pub struct Button<'a> {
     icon: Option<Icon>,
     enabled: bool,
     busy: bool,
+    hidden: bool,
     tooltip: Option<&'a str>,
 }
 
@@ -39,6 +40,7 @@ impl<'a> Button<'a> {
             icon: None,
             enabled: true,
             busy: false,
+            hidden: false,
             tooltip: None,
         }
     }
@@ -56,6 +58,13 @@ impl<'a> Button<'a> {
     /// A spinner replaces the icon and the button can't be pressed.
     pub fn busy(mut self, busy: bool) -> Self {
         self.busy = busy;
+        self
+    }
+
+    /// Draws nothing until the button has keyboard focus. It still takes its space and Tab
+    /// still reaches it, so a row can show its action only under the pointer.
+    pub fn hidden(mut self, hidden: bool) -> Self {
+        self.hidden = hidden;
         self
     }
 
@@ -114,7 +123,7 @@ impl Widget for Button<'_> {
         let label = self.tooltip.unwrap_or(self.label).to_string();
         response.widget_info(|| WidgetInfo::labeled(Role::Button, interactive, &label));
 
-        if ui.is_rect_visible(rect) {
+        if ui.is_rect_visible(rect) && !(self.hidden && !response.has_focus()) {
             let pressed = response.is_pointer_button_down_on();
             let hovered = response.hovered() && interactive;
             let white = Color32::WHITE;

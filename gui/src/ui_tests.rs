@@ -166,10 +166,7 @@ fn busy(cancelling: bool) -> App {
 #[test]
 fn remove_opens_a_dialog_that_names_the_folders_and_escape_closes_it() {
     let mut h = harness(populated(), Vec2::new(960.0, 640.0));
-    // Remove only appears once the pointer is over the row.
-    assert!(h.query_by_label("Remove Auctionator").is_none());
-    h.get_by_label("Auctionator").hover();
-    h.run_steps(2);
+    // Remove is only drawn under the pointer, but it is always there for Tab and screen readers.
     h.get_by_label("Remove Auctionator").click();
     h.run_steps(2);
     assert!(h.query_by_label("Remove Auctionator?").is_some());

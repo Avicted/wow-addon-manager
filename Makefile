@@ -19,7 +19,9 @@ LINT_STAMP  := $(BUILD)/.pre-commit-image
 
 # Containers run as you, so files they write (AddOns, state, caches) stay yours.
 AS_ME := --user $(shell id -u):$(shell id -g)
-TTY   := $(shell [ -t 0 ] && echo -t)
+# Tested by the recipe's own shell: under make -j (make check) only one job keeps the terminal
+# as stdin, and docker -t fails for the others.
+TTY   := $$([ -t 0 ] && echo -t)
 
 .DEFAULT_GOAL := help
 .PHONY: help status update install remove search track wam image dist gui gui-run gui-dev gui-test release release-check version-check new-version undo-version release-assets release-notes smoke test check cover pre-commit hooks clean

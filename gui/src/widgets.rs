@@ -130,7 +130,7 @@ impl Widget for Button<'_> {
                         theme::PRIMARY_HOVER,
                         theme::PRIMARY_PRESSED,
                     );
-                    (f, theme::GOLD, white)
+                    (f, theme::GOLD, theme::ACCENT_TEXT)
                 }
                 Kind::Success => {
                     let f = pick(

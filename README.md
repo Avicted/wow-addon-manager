@@ -1,5 +1,8 @@
 # wam: WoW Forever addon manager
 
+[![CI](https://github.com/Avicted/wow-addon-manager/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Avicted/wow-addon-manager/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Avicted/wow-addon-manager/badges/coverage.json)](https://github.com/Avicted/wow-addon-manager/blob/badges/coverage.json)
+
 `wam` checks your World of Warcraft Forever addons for newer versions, updates
 them, and installs new ones from CurseForge and GitHub. Only builds made for the
 Forever client (1.60.x) are picked. It comes as a desktop app and as a

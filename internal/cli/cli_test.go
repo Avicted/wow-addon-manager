@@ -636,3 +636,19 @@ func TestStatusNotesOldBackups(t *testing.T) {
 		}
 	}
 }
+
+func TestFolderArgsRefuseDirectories(t *testing.T) {
+	f := newFixture(t)
+	f.folder(t, "Questie", "1")
+	for _, arg := range []string{".", "..", "", "x/.."} {
+		if err := cmdRemove(f.e, f.st, []string{arg}); err == nil || !strings.Contains(err.Error(), "not a folder in AddOns") {
+			t.Errorf("remove %q: %v", arg, err)
+		}
+		if err := cmdTrack(f.e, f.st, []string{arg, "curse:1"}); err == nil || !strings.Contains(err.Error(), "not a folder in AddOns") {
+			t.Errorf("track %q: %v", arg, err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(f.addons, "Questie")); err != nil {
+		t.Fatal(err)
+	}
+}

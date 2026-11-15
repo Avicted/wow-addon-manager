@@ -688,11 +688,25 @@ type trackReport struct {
 	Ref    string `json:"ref"`
 }
 
+// folderArg is the AddOns folder a command argument names. "." and ".." would name AddOns
+// itself or the Interface directory above it.
+func folderArg(s string) (string, error) {
+	switch b := filepath.Base(s); b {
+	case ".", "..", string(filepath.Separator):
+		return "", fmt.Errorf("%q is not a folder in AddOns", s)
+	default:
+		return b, nil
+	}
+}
+
 func cmdTrack(e *env, st *state.State, args []string) error {
 	if len(args) != 2 {
 		return fmt.Errorf("usage: wam track <folder> <curseforge-url|slug|curse:id|github-url>")
 	}
-	folder := filepath.Base(args[0])
+	folder, err := folderArg(args[0])
+	if err != nil {
+		return err
+	}
 	f, err := toc.Read(e.addonsDir, folder)
 	if err != nil {
 		return err
@@ -727,12 +741,19 @@ func cmdRemove(e *env, st *state.State, args []string) error {
 	if _, err := e.sync(st); err != nil {
 		return err
 	}
-	name, folders := args[0], []string{filepath.Base(args[0])}
+	name, folders := args[0], []string(nil)
 	a := st.Find(args[0])
 	if a != nil {
 		name, folders = a.Name, a.Folders
-	} else if _, err := os.Lstat(filepath.Join(e.addonsDir, folders[0])); err != nil {
-		return fmt.Errorf("no addon or folder named %s", args[0])
+	} else {
+		folder, err := folderArg(args[0])
+		if err != nil {
+			return err
+		}
+		if _, err := os.Lstat(filepath.Join(e.addonsDir, folder)); err != nil {
+			return fmt.Errorf("no addon or folder named %s", args[0])
+		}
+		folders = []string{folder}
 	}
 	backup, err := e.inst.Remove(name, folders)
 	if err != nil {

@@ -31,6 +31,8 @@ fn renderer() -> eframe::Renderer {
 }
 
 fn main() -> eframe::Result {
+    // Before eframe writes the settings (with the GitHub token) beside wam's state.
+    let private = wam::private_dir(&wam::data_dir());
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title(format!("wam | v{}", wam::VERSION))
@@ -58,6 +60,11 @@ fn main() -> eframe::Result {
             let bin = wam::unpack(&wam::data_dir())
                 .map_err(|e| format!("Couldn\u{2019}t prepare wam: {e}"));
             let mut app = App::new(cc.egui_ctx.clone(), settings, bin);
+            if let Err(e) = private {
+                app.log_error(format!(
+                    "Couldn\u{2019}t make wam\u{2019}s data folder private: {e}"
+                ));
+            }
             if cfg!(target_os = "linux")
                 && let Err(e) = std::env::current_exe()
                     .and_then(|exe| wam::install_desktop_entry(&wam::data_home(), &exe))

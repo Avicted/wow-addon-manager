@@ -192,6 +192,18 @@ pub fn data_dir() -> PathBuf {
     }
 }
 
+/// Creates `dir` if needed and, on Unix, makes it readable by its owner only: the GUI keeps the
+/// GitHub token in a file there.
+pub fn private_dir(dir: &Path) -> io::Result<()> {
+    fs::create_dir_all(dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(dir, fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(())
+}
+
 /// The window icon, also installed as the launcher icon.
 pub static ICON_PNG: &[u8] = include_bytes!("../assets/icon.png");
 
@@ -393,6 +405,20 @@ mod tests {
         assert!(install_desktop_entry(&dir, exe).unwrap().is_empty());
         let moved = install_desktop_entry(&dir, Path::new("/usr/bin/wam-gui")).unwrap();
         assert_eq!(moved, vec![dir.join("applications/wam.desktop")]);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn private_dir_is_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("wam-private-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o755)).unwrap();
+        private_dir(&dir).unwrap();
+        let mode = fs::metadata(&dir).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o700);
         fs::remove_dir_all(&dir).unwrap();
     }
 

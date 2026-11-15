@@ -69,7 +69,7 @@ func Load(path, addonsDir string) (*State, error) {
 // state.json and AddOns at the same time. It fails at once if another process holds it.
 // The returned function releases the lock; the OS also does when the process exits.
 func Lock(dataDir string) (unlock func(), err error) {
-	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+	if err := os.MkdirAll(dataDir, 0o700); err != nil {
 		return nil, err
 	}
 	path := filepath.Join(dataDir, "state.lock")

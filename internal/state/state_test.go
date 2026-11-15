@@ -249,3 +249,22 @@ func TestAdoptIgnoresUnreadableFolders(t *testing.T) {
 		t.Fatalf("addons %+v, unresolved %v", st.Addons, st.Unresolved)
 	}
 }
+
+func TestLockCreatesPrivateDataDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows has no Unix modes")
+	}
+	dir := filepath.Join(t.TempDir(), "wam")
+	unlock, err := Lock(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+	fi, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fi.Mode().Perm(); got != 0o700 {
+		t.Errorf("data dir mode = %o, want 700", got)
+	}
+}

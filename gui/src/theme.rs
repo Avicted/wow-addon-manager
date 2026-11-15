@@ -95,6 +95,8 @@ pub enum Weight {
     Regular,
     Medium,
     SemiBold,
+    /// Cinzel, the serif capitals for titles and tabs.
+    Display,
 }
 
 pub fn font(size: f32, weight: Weight) -> FontId {
@@ -102,6 +104,7 @@ pub fn font(size: f32, weight: Weight) -> FontId {
         Weight::Regular => FontFamily::Proportional,
         Weight::Medium => FontFamily::Name("medium".into()),
         Weight::SemiBold => FontFamily::Name("semibold".into()),
+        Weight::Display => FontFamily::Name("display".into()),
     };
     FontId::new(size, family)
 }
@@ -125,6 +128,7 @@ fn fonts() -> FontDefinitions {
         "inter-semibold",
         include_bytes!("../assets/fonts/Inter-SemiBold.ttf"),
     );
+    add("cinzel", include_bytes!("../assets/fonts/Cinzel-Bold.ttf"));
     add(
         "jetbrains-mono",
         include_bytes!("../assets/fonts/JetBrainsMono-Regular.ttf"),
@@ -139,7 +143,12 @@ fn fonts() -> FontDefinitions {
     family(FontFamily::Proportional, "inter");
     family(FontFamily::Name("medium".into()), "inter-medium");
     family(FontFamily::Name("semibold".into()), "inter-semibold");
+    family(FontFamily::Name("display".into()), "cinzel");
     family(FontFamily::Monospace, "jetbrains-mono");
+    // Cinzel lacks some glyphs (like "…"); Inter covers them before egui's fonts do.
+    if let Some(display) = defs.families.get_mut(&FontFamily::Name("display".into())) {
+        display.insert(1, "inter".to_string());
+    }
     defs
 }
 
@@ -149,7 +158,7 @@ pub fn apply(ctx: &egui::Context) {
     ctx.set_theme(egui::Theme::Dark);
     ctx.all_styles_mut(|style| {
         style.text_styles = [
-            (TextStyle::Heading, font(18.0, Weight::SemiBold)),
+            (TextStyle::Heading, font(18.0, Weight::Display)),
             (TextStyle::Body, font(13.0, Weight::Regular)),
             (TextStyle::Button, font(13.0, Weight::Medium)),
             (TextStyle::Small, font(12.0, Weight::Regular)),

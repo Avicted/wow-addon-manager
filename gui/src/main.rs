@@ -309,7 +309,9 @@ fn strip(app: &mut App, ui: &mut Ui) {
             Tone::Warning => theme::WARNING,
             Tone::Error => theme::ERROR,
         };
-        widgets::icon(ui, Icon::Info, color);
+        if !msg.is_empty() {
+            widgets::icon(ui, Icon::Info, color);
+        }
         let w = ui.available_width() - 110.0;
         ui.allocate_ui_with_layout(
             Vec2::new(w, 30.0),

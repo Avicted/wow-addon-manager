@@ -51,6 +51,7 @@ Environment:
 
 type env struct {
 	addonsDir string
+	dataDir   string // where state.json lives; empty in tests that don't need it
 	out, err  io.Writer
 	inst      *install.Installer
 	lookup    state.Lookup
@@ -174,6 +175,7 @@ func (e *env) run(cmd string, args []string, home, addonsDir string, rescan bool
 	}
 	dataDir := dataDir(home)
 	e.addonsDir = dir
+	e.dataDir = dataDir
 	e.inst = &install.Installer{AddonsDir: dir, Log: e.logf}
 	if err != nil {
 		return 1, fmt.Errorf("%w: %w", errAddonsDir, err)
@@ -348,6 +350,7 @@ func cmdStatus(e *env, st *state.State, args []string) error {
 	if err != nil {
 		return err
 	}
+	e.noteOldBackups()
 	checks := e.checkAll(st.Addons)
 	r := statusReport{AddonsDir: e.addonsDir, BackupsDir: e.inst.BackupsDir(), Addons: []addonRow{},
 		Untracked: []untracked{}, Broken: []broken{}, WowRunning: install.WowRunning()}
@@ -385,6 +388,19 @@ func cmdStatus(e *env, st *state.State, args []string) error {
 		return nil
 	}
 	return e.printStatus(r)
+}
+
+// noteOldBackups mentions the backups wam 1.0 kept in the data directory; since 1.1 they are
+// zips in AddOns-backups and nothing reads the old folder. It is never deleted automatically.
+func (e *env) noteOldBackups() {
+	if e.dataDir == "" {
+		return
+	}
+	old := filepath.Join(e.dataDir, "backups")
+	if entries, err := os.ReadDir(old); err == nil && len(entries) > 0 {
+		e.logf("note: backups made by wam 1.0 are still in %s; wam now keeps them in %s, so that folder can be deleted",
+			old, e.inst.BackupsDir())
+	}
 }
 
 func (e *env) printStatus(r statusReport) error {

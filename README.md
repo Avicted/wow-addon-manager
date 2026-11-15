@@ -116,6 +116,8 @@ a GitHub repository (`github:Questie/Questie`).
 - Folders under "Not tracked" need `make track` so wam can update them.
 - Backups are zips in `Interface/AddOns-backups`, beside the AddOns folder. `WAM_DATA_DIR` moves
   wam's state, not the backups.
+- wam 1.0 kept backups in its data folder (`backups/`). `wam status` mentions that folder while
+  it exists; since 1.1 nothing reads it, so you can delete it.
 - Set `GITHUB_TOKEN` to raise GitHub's 60 requests an hour limit.
 - Output is colored on a terminal; set `NO_COLOR=1` to turn it off.
 

@@ -612,3 +612,27 @@ func TestDescribe(t *testing.T) {
 		t.Error("describe(nil) != nil")
 	}
 }
+
+func TestStatusNotesOldBackups(t *testing.T) {
+	f := newFixture(t)
+	f.e.dataDir = filepath.Join(f.root, "data")
+
+	if err := cmdStatus(f.e, f.st, nil); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(f.log.String(), "wam 1.0") {
+		t.Errorf("note without old backups:\n%s", f.log)
+	}
+
+	if err := os.MkdirAll(filepath.Join(f.e.dataDir, "backups", "Questie"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmdStatus(f.e, f.st, nil); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"backups made by wam 1.0", filepath.Join(f.e.dataDir, "backups"), f.e.inst.BackupsDir()} {
+		if !strings.Contains(f.log.String(), want) {
+			t.Errorf("log lacks %q:\n%s", want, f.log)
+		}
+	}
+}

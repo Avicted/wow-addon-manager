@@ -127,8 +127,8 @@ fn hits(app: &mut App, ui: &mut Ui, width: f32) {
     ui.painter().rect_filled(
         bar,
         CornerRadius {
-            nw: 6,
-            ne: 6,
+            nw: 3,
+            ne: 3,
             sw: 0,
             se: 0,
         },
@@ -213,8 +213,8 @@ fn hits(app: &mut App, ui: &mut Ui, width: f32) {
         CornerRadius {
             nw: 0,
             ne: 0,
-            sw: 6,
-            se: 6,
+            sw: 3,
+            se: 3,
         },
         theme::PANEL,
     );

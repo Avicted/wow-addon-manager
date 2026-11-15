@@ -343,7 +343,7 @@ fn table(app: &mut App, ui: &mut Ui, below: f32) {
 
         let (header, _) = ui.allocate_exact_size(Vec2::new(width, 30.0), Sense::hover());
         let p = ui.painter();
-        p.rect_filled(header, CornerRadius { nw: 6, ne: 6, sw: 0, se: 0 }, theme::TABLE_HEADER);
+        p.rect_filled(header, CornerRadius { nw: 3, ne: 3, sw: 0, se: 0 }, theme::TABLE_HEADER);
         p.hline(header.x_range(), header.bottom(), Stroke::new(1.0, theme::BORDER));
         let titles: &[&str] =
             if cols.source { &["Addon", "Installed", "Latest", "Source", "Status", ""] } else { &["Addon", "Installed", "Latest", "Status", ""] };
@@ -368,7 +368,7 @@ fn table(app: &mut App, ui: &mut Ui, below: f32) {
         );
         if guessed {
             let (r, _) = ui.allocate_exact_size(Vec2::new(width, footer), Sense::hover());
-            ui.painter().rect_filled(r, CornerRadius { nw: 0, ne: 0, sw: 6, se: 6 }, theme::PANEL);
+            ui.painter().rect_filled(r, CornerRadius { nw: 0, ne: 0, sw: 3, se: 3 }, theme::PANEL);
             ui.painter().hline(r.x_range(), r.top(), Stroke::new(1.0, theme::BORDER));
             in_rect(ui, pad(r, 12.0), Align::Min, |ui| {
                 ui.label(mono("~", theme::TEXT_SECONDARY));

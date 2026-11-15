@@ -59,7 +59,12 @@ fn paragraph(ui: &mut Ui, s: &str) {
 }
 
 fn addons_folder(app: &mut App, ui: &mut Ui) {
-    ui.label(text("AddOns folder", 14.0, Weight::SemiBold, theme::TEXT));
+    ui.label(text(
+        "AddOns folder",
+        14.0,
+        Weight::Display,
+        theme::ACCENT_TEXT,
+    ));
     let mut dir = app.addons_dir_shown();
     let exists = !dir.is_empty() && Path::new(&dir).is_dir();
     let bad = app.first_run.is_some() || !exists || app.folder_error.is_some();
@@ -134,7 +139,12 @@ fn rescan(app: &mut App, ui: &mut Ui) {
 fn token(app: &mut App, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 4.0;
-        ui.label(text("GitHub token", 14.0, Weight::SemiBold, theme::TEXT));
+        ui.label(text(
+            "GitHub token",
+            14.0,
+            Weight::Display,
+            theme::ACCENT_TEXT,
+        ));
         ui.label(text("(optional)", 14.0, Weight::Regular, theme::MUTED));
     });
     paragraph(
@@ -175,7 +185,7 @@ fn token(app: &mut App, ui: &mut Ui) {
 }
 
 fn backups(app: &mut App, ui: &mut Ui) {
-    ui.label(text("Backups", 14.0, Weight::SemiBold, theme::TEXT));
+    ui.label(text("Backups", 14.0, Weight::Display, theme::ACCENT_TEXT));
     paragraph(
         ui,
         "Before an addon is removed or replaced, wam saves it here as a zip, so you can always put it back.",

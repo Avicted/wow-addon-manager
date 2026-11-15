@@ -130,7 +130,7 @@ impl Widget for Button<'_> {
                         theme::PRIMARY_HOVER,
                         theme::PRIMARY_PRESSED,
                     );
-                    (f, f, white)
+                    (f, theme::GOLD, white)
                 }
                 Kind::Success => {
                     let f = pick(
@@ -200,6 +200,14 @@ impl Widget for Button<'_> {
                 Stroke::new(1.0, border),
                 StrokeKind::Inside,
             );
+            if matches!(self.kind, Kind::Primary | Kind::Success | Kind::Danger) && !pressed {
+                // A pale line along the top inside edge gives the button a bevel.
+                p.hline(
+                    rect.x_range().shrink(2.0),
+                    rect.top() + 1.5,
+                    Stroke::new(1.0, Color32::from_white_alpha(34).gamma_multiply(opacity)),
+                );
+            }
             let mut x = if self.kind == Kind::IconOnly {
                 rect.center().x - 8.0
             } else {

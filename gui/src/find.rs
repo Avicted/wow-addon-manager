@@ -113,7 +113,7 @@ fn message(ui: &mut Ui, icon: Option<(Icon, egui::Color32)>, title: &str, body: 
         if let Some((i, c)) = icon {
             ui.add(i.image(20.0, c));
         }
-        ui.label(text(title, 13.0, Weight::SemiBold, theme::TEXT));
+        ui.label(text(title, 13.0, Weight::Display, theme::ACCENT_TEXT));
         ui.add(egui::Label::new(text(body, 13.0, Weight::Regular, theme::MUTED)).wrap());
     });
 }
@@ -253,8 +253,8 @@ fn link_form(app: &mut App, ui: &mut Ui) {
             ui.label(text(
                 "Install from a link or name",
                 13.0,
-                Weight::SemiBold,
-                theme::TEXT,
+                Weight::Display,
+                theme::ACCENT_TEXT,
             ));
             let installing = matches!(
                 app.running_cmd(),

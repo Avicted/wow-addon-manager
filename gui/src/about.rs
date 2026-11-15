@@ -16,8 +16,8 @@ pub fn show(ui: &mut Ui) {
         ui.set_max_width(480.0);
         ui.add_space((ui.available_height() / 2.0 - 140.0).max(24.0));
         ui.spacing_mut().item_spacing.y = 8.0;
-        ui.add(Icon::Logo.image(48.0, theme::ACCENT_TEXT));
-        ui.label(text("wam", 22.0, Weight::SemiBold, theme::TEXT));
+        ui.add(Icon::Logo.image(48.0, theme::GOLD));
+        ui.label(text("WAM", 22.0, Weight::Display, theme::GOLD));
         ui.label(mono(format!("v{}", wam::VERSION), theme::TEXT_SECONDARY));
         ui.label(text(
             "Keeps your World of Warcraft Forever 1.60 addons up to date.",

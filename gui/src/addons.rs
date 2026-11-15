@@ -642,7 +642,7 @@ fn sections(app: &mut App, ui: &mut Ui) {
                         },
                         theme::MUTED,
                     );
-                    ui.label(text(*title, 13.0, Weight::SemiBold, theme::TEXT));
+                    ui.label(text(*title, 13.0, Weight::Display, theme::ACCENT_TEXT));
                     widgets::pill(ui, items.len(), tint);
                     truncated(ui, text(*hint, 13.0, Weight::Regular, theme::MUTED));
                 });
@@ -758,7 +758,7 @@ pub fn dialogs(app: &mut App, ctx: &egui::Context) {
         ui.spacing_mut().item_spacing.y = 14.0;
         match dialog {
             Dialog::Remove { name, folders } => {
-                ui.label(text(format!("Remove {name}?"), 15.0, Weight::SemiBold, theme::TEXT));
+                ui.label(text(format!("Remove {name}?"), 15.0, Weight::Display, theme::TEXT));
                 ui.add(egui::Label::new(text(
                     "These folders are saved as a zip in the backups folder first, so you can put them back later.",
                     13.0, Weight::Regular, theme::TEXT_SECONDARY)).wrap());
@@ -783,7 +783,7 @@ pub fn dialogs(app: &mut App, ctx: &egui::Context) {
                 });
             }
             Dialog::Track { name, folders, input, error, focus } => {
-                ui.label(text(format!("Where does {name} come from?"), 15.0, Weight::SemiBold, theme::TEXT));
+                ui.label(text(format!("Where does {name} come from?"), 15.0, Weight::Display, theme::TEXT));
                 ui.add(egui::Label::new(text(
                     "wam found these folders but doesn\u{2019}t know which addon they belong to, so it can\u{2019}t check them for updates.",
                     13.0, Weight::Regular, theme::TEXT_SECONDARY)).wrap());
@@ -822,6 +822,13 @@ pub fn dialogs(app: &mut App, ctx: &egui::Context) {
             }
         }
     });
+    // A thin inner line inside the gold border makes the dialog a double frame.
+    ctx.layer_painter(resp.response.layer_id).rect_stroke(
+        resp.response.rect.shrink(4.0),
+        egui::CornerRadius::same(2),
+        Stroke::new(1.0, theme::BORDER),
+        egui::StrokeKind::Inside,
+    );
     if resp.should_close() && !tracking && action.is_none() {
         action = Some(DialogAction::Close);
     }
@@ -891,7 +898,7 @@ fn first_run(app: &mut App, ui: &mut Ui, path: &str) {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 10.0;
                         ui.add(Icon::Folder.image(20.0, theme::WARNING));
-                        ui.label(text("Where is your AddOns folder?", 18.0, Weight::SemiBold, theme::TEXT));
+                        ui.label(text("Where is your AddOns folder?", 18.0, Weight::Display, theme::TEXT));
                     });
                     ui.add(egui::Label::new(text(
                         "wam looks after the addons in your game\u{2019}s AddOns folder, but it couldn\u{2019}t find that folder here:",
@@ -933,7 +940,7 @@ fn empty_state(app: &mut App, ui: &mut Ui) {
             Rect::from_center_size(tile.center(), Vec2::splat(20.0)),
             theme::MUTED,
         );
-        ui.label(text("No addons yet", 16.0, Weight::SemiBold, theme::TEXT));
+        ui.label(text("No addons yet", 16.0, Weight::Display, theme::TEXT));
         ui.add(egui::Label::new(text(
             "Your AddOns folder is empty. Find an addon to install, or check that wam is looking in the right folder.",
             13.0, Weight::Regular, theme::MUTED)).wrap());

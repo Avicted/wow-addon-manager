@@ -95,7 +95,7 @@ fn draw(app: &mut App, ui: &mut Ui) {
         app.poll();
         shortcuts(app, ui.ctx());
 
-        egui::Panel::top("top")
+        let top = egui::Panel::top("top")
             .resizable(false)
             .exact_size(44.0)
             .frame(Frame::new().fill(theme::PANEL).inner_margin(Margin {
@@ -104,7 +104,20 @@ fn draw(app: &mut App, ui: &mut Ui) {
                 top: 0,
                 bottom: 0,
             }))
-            .show(ui, |ui| top_bar(app, ui));
+            .show(ui, |ui| top_bar(app, ui))
+            .response;
+        // An engraved edge under the bar: a gold line over a black one.
+        let edge = top.rect;
+        ui.painter().hline(
+            edge.x_range(),
+            edge.bottom() - 1.5,
+            Stroke::new(1.0, theme::GOLD.gamma_multiply(0.55)),
+        );
+        ui.painter().hline(
+            edge.x_range(),
+            edge.bottom() - 0.5,
+            Stroke::new(1.0, egui::Color32::BLACK),
+        );
         egui::Panel::bottom("strip")
             .resizable(false)
             .exact_size(30.0)
@@ -174,8 +187,8 @@ fn tab_enabled(app: &App, tab: Tab) -> bool {
 fn top_bar(app: &mut App, ui: &mut Ui) {
     ui.horizontal_centered(|ui| {
         ui.spacing_mut().item_spacing.x = 8.0;
-        ui.add(Icon::Logo.image(18.0, theme::ACCENT_TEXT));
-        ui.label(text("wam", 14.0, Weight::SemiBold, theme::TEXT));
+        ui.add(Icon::Logo.image(18.0, theme::GOLD));
+        ui.label(text("WAM", 15.0, Weight::Display, theme::GOLD));
         ui.add_space(8.0);
         ui.spacing_mut().item_spacing.x = 0.0;
         // One action at a time: the tabs rest while an update or install runs.
@@ -207,15 +220,15 @@ fn top_bar(app: &mut App, ui: &mut Ui) {
 
 /// A tab: 13 px label, a count pill on Addons, and a 2 px accent underline when active.
 fn tab_button(ui: &mut Ui, label: &str, count: Option<usize>, active: bool, enabled: bool) -> bool {
-    let weight = if active {
-        Weight::SemiBold
+    let weight = Weight::Display;
+    let mut color = if active {
+        theme::ACCENT_TEXT
     } else {
-        Weight::Medium
+        theme::MUTED
     };
-    let mut color = if active { theme::TEXT } else { theme::MUTED };
     let galley = ui
         .painter()
-        .layout_no_wrap(label.to_string(), theme::font(13.0, weight), color);
+        .layout_no_wrap(label.to_string(), theme::font(12.5, weight), color);
     let pill_w = count.map_or(0.0, |n| {
         6.0 + (n.to_string().len() as f32 * 7.0 + 12.0).max(20.0)
     });
@@ -262,7 +275,19 @@ fn tab_button(ui: &mut Ui, label: &str, count: Option<usize>, active: bool, enab
             egui::pos2(rect.left(), rect.bottom() - 2.0),
             rect.right_bottom(),
         );
-        p.rect_filled(line, 0, theme::PROGRESS_FILL.gamma_multiply(opacity));
+        p.rect_filled(line, 0, theme::GOLD.gamma_multiply(opacity));
+        // A small diamond on the underline.
+        let c = egui::pos2(rect.center().x, rect.bottom() - 2.0);
+        p.add(egui::Shape::convex_polygon(
+            vec![
+                c + Vec2::new(0.0, -4.0),
+                c + Vec2::new(4.0, 0.0),
+                c + Vec2::new(0.0, 4.0),
+                c + Vec2::new(-4.0, 0.0),
+            ],
+            theme::ACCENT_TEXT.gamma_multiply(opacity),
+            Stroke::NONE,
+        ));
     }
     if resp.has_focus() {
         p.rect_stroke(

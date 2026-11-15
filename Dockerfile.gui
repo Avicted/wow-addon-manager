@@ -52,16 +52,28 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 	touch /tested
 EOF
 
-FROM rust AS build
+# Linux and Windows build in separate stages, each with its own target cache, so BuildKit
+# compiles them at the same time.
+FROM rust AS build-linux
 COPY --from=test /tested /tested
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/src/gui/target,id=wam-gui-target <<-EOF
+    --mount=type=cache,target=/src/gui/target,id=wam-gui-target-linux <<-EOF
 	set -e
 	cargo build --locked --release --target x86_64-unknown-linux-gnu
+	mkdir /out
+	cp target/x86_64-unknown-linux-gnu/release/wam-gui /out/
+EOF
+
+FROM rust AS build-windows
+COPY --from=test /tested /tested
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/src/gui/target,id=wam-gui-target-windows <<-EOF
+	set -e
 	WAM_BIN=/wam/windows/wam.exe cargo build --locked --release --target x86_64-pc-windows-gnu
 	mkdir /out
-	cp target/x86_64-unknown-linux-gnu/release/wam-gui target/x86_64-pc-windows-gnu/release/wam-gui.exe /out/
+	cp target/x86_64-pc-windows-gnu/release/wam-gui.exe /out/
 EOF
 
 FROM scratch AS gui
-COPY --from=build /out/ /
+COPY --from=build-linux /out/ /
+COPY --from=build-windows /out/ /

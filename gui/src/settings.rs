@@ -111,8 +111,8 @@ fn rescan(app: &mut App, ui: &mut Ui) {
     ui.label(text(
         "Unidentified folders",
         14.0,
-        Weight::SemiBold,
-        theme::TEXT,
+        Weight::Display,
+        theme::ACCENT_TEXT,
     ));
     paragraph(
         ui,
